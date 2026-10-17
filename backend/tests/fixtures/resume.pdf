@@ -1,0 +1,38 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>
+endobj
+4 0 obj
+<< /Length 320 >>
+stream
+BT
+/F1 14 Tf
+72 720 Td
+(Jane Doe - Senior Software Engineer) Tj
+0 -20 Td
+(jane.doe@example.com | +1 555 010 2030 | Berlin) Tj
+0 -30 Td
+(Experience) Tj
+0 -18 Td
+(Senior Engineer, Acme Corp, 2021 - Present) Tj
+0 -16 Td
+(Built React dashboards used by 12k merchants.) Tj
+0 -16 Td
+(Cut page load time by 40 percent.) Tj
+0 -30 Td
+(Skills: React, TypeScript, Jest, Git, SQL) Tj
+ET
+endstream
+endobj
+5 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+trailer
+<< /Size 6 /Root 1 0 R >>
+%%EOF

@@ -1,0 +1,21 @@
+services:
+  db:
+    image: postgres:18-alpine
+    container_name: applyzen-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: applyzen
+      POSTGRES_PASSWORD: applyzen_dev
+      POSTGRES_DB: applyzen
+    ports:
+      - "5432:5432"
+    volumes:
+      - applyzen-pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U applyzen -d applyzen"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  applyzen-pgdata:
