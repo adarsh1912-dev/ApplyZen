@@ -82,6 +82,7 @@ export const env = {
   isTest,
   port: Number(process.env.PORT ?? 4000),
   databaseUrl: process.env.DATABASE_URL,
+  databaseSsl: process.env.DATABASE_SSL === 'true',
   accessTokenSecret: process.env.ACCESS_TOKEN_SECRET,
   refreshPepper: process.env.REFRESH_TOKEN_PEPPER ?? '',
   trustProxy: parseTrustProxy(process.env.TRUST_PROXY),

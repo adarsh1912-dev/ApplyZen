@@ -4,6 +4,9 @@ import { env } from './env.js';
 // Single shared pool. Tuned for a small API + local Postgres.
 export const pool = new Pool({
   connectionString: env.databaseUrl,
+  // Heroku Postgres (and most managed providers) require TLS. The provider's
+  // CA is not always in Node's trust store, so verification is disabled here.
+  ssl: env.databaseSsl ? { rejectUnauthorized: false } : undefined,
   max: 10,
   idleTimeoutMillis: 30_000,
   connectionTimeoutMillis: 5_000,
