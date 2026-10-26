@@ -1,0 +1,7 @@
+.git
+.commandcode
+frontend
+**/node_modules
+**/dist
+**/.env
+backend/tests

@@ -171,6 +171,7 @@ To try the offline mode instead, omit `frontend/.env` (or leave `VITE_API_URL` e
 | Variable | Required | Notes |
 |---|---|---|
 | `DATABASE_URL` | yes | e.g. `postgres://applyzen:applyzen_dev@127.0.0.1:5432/applyzen` |
+| `DATABASE_SSL` | no | `true` for Heroku Postgres and other TLS-required managed databases |
 | `ACCESS_TOKEN_SECRET` | yes | 32+ random chars; signs access JWTs |
 | `REFRESH_TOKEN_PEPPER` | no | Extra pepper for refresh-token hashes |
 | `FRONTEND_ORIGIN` | yes | Comma-separated exact origins for CORS + CSRF, e.g. `http://localhost:5173`. Required in production. |
@@ -187,10 +188,87 @@ To try the offline mode instead, omit `frontend/.env` (or leave `VITE_API_URL` e
 |---|---|
 | `VITE_API_URL` | Backend origin (e.g. `http://localhost:4000`). Leave empty for offline mode. On Vercel with the `/api` proxy, set `/`. |
 
-## Deployment (Railway + Vercel)
+## Deployment (Vercel + Heroku/Railway)
 
-The included setup proxies `/api/*` from Vercel to Railway. The browser sees one
-origin, so the `SameSite=Lax` auth cookies stay first-party.
+The included setup proxies `/api/*` from Vercel to the backend. The browser sees
+one origin, so the `SameSite=Lax` auth cookies stay first-party. Use either
+Heroku or Railway for the API. The repo ships a root `Dockerfile` and
+`heroku.yml` for Heroku, and `backend/Dockerfile` for Railway.
+
+### Backend on Heroku
+
+1. Install the Heroku CLI and create the app with Postgres:
+
+```bash
+heroku login
+heroku create <your-app-name>
+heroku stack:set container -a <your-app-name>
+heroku addons:create heroku-postgresql:essential-0 -a <your-app-name>
+```
+
+Use `heroku addons:plans heroku-postgresql` to see the plans available to your
+credits. After the first deploy, choose the dyno size explicitly:
+
+```bash
+heroku ps:scale web=1:eco -a <your-app-name>    # ~$10/mo total; sleeps when idle
+# or
+heroku ps:scale web=1:basic -a <your-app-name>  # ~$12/mo total; always on
+```
+
+2. Set config vars (do **not** set `PORT`; Heroku injects it, and the add-on sets
+   `DATABASE_URL`):
+
+```bash
+heroku config:set -a <your-app-name> \
+  NODE_ENV=production \
+  ACCESS_TOKEN_SECRET=$(openssl rand -hex 32) \
+  REFRESH_TOKEN_PEPPER=$(openssl rand -hex 32) \
+  FRONTEND_ORIGIN=https://your-app.vercel.app \
+  COOKIE_SECURE=true \
+  TRUST_PROXY=2 \
+  DATABASE_SSL=true
+```
+
+3. Deploy. Either connect the repo in the Heroku dashboard and enable automatic
+   deploys from `main` (`heroku.yml` builds the root Dockerfile and runs
+   migrations in the release phase), or push the image:
+
+```bash
+heroku container:login
+heroku container:push web -a <your-app-name>
+heroku container:release web -a <your-app-name>
+```
+
+Run the container commands from the repo root so the root `Dockerfile` is used.
+
+4. Verify:
+
+```bash
+curl https://<your-app-name>.herokuapp.com/health
+curl https://<your-app-name>.herokuapp.com/ready
+```
+
+5. Add the Heroku URL to the Vercel rewrite below. Add
+   `FRONTEND_ORIGIN_PATTERNS=https://your-project-*-your-team.vercel.app` if
+   preview deployments should authenticate.
+
+#### Keeping within the $13/month Heroku student credit
+
+- **Eco dyno + Heroku Postgres Essential 0 ≈ $10/month.** Leaves a $3 buffer;
+  the dyno sleeps after inactivity, so the first request is slow.
+- **Basic dyno + Essential 0 ≈ $12/month.** Always on, but only a $1 buffer
+  before tax/proration. Verify your first invoice; if tax applies, use Eco.
+- **Basic dyno + Neon free Postgres ≈ $7/month.** More headroom and always-on,
+  at the cost of an external database dependency. Set `DATABASE_URL` to Neon
+  and `DATABASE_SSL=true`.
+- Keep exactly **one** web dyno. Do not add Standard dynos, worker dynos, Redis,
+  or other paid add-ons. Heroku Postgres Essential 0 includes 1 GB, which is
+  plenty for this app's JSONB data.
+- Credits are not a hard cap: set a billing alert/spending limit in the Heroku
+  dashboard and check **Usage & Billing** after the first month.
+- If the student credit ever ends, stop charges with
+  `heroku ps:scale web=0 -a <your-app-name>`, then destroy the Postgres
+  add-on/app, or move the database to a free provider.
 
 ### Backend on Railway
 
@@ -210,9 +288,7 @@ COOKIE_SECURE=true
 TRUST_PROXY=2
 ```
 
-Add `FRONTEND_ORIGIN_PATTERNS=https://your-project-*-your-team.vercel.app`
-if preview deployments should authenticate. The Dockerfile runs migrations on
-start. Do not run `npm run seed` in production.
+The Dockerfile runs migrations on start. Do not run `npm run seed` in production.
 
 ### Frontend on Vercel
 
@@ -220,14 +296,14 @@ start. Do not run `npm run seed` in production.
    settings come from `frontend/vercel.json`).
 2. Add `VITE_API_URL=/` for the Production and Preview environments.
 3. Replace the placeholder in the `/api/:path*` rewrite in
-   `frontend/vercel.json` with the Railway service domain, then deploy.
-4. Set Railway's `FRONTEND_ORIGIN` to the final Vercel domain and redeploy.
+   `frontend/vercel.json` with the Heroku or Railway domain, then deploy.
+4. Set the backend's `FRONTEND_ORIGIN` to the final Vercel domain and redeploy.
 
 For separate custom domains (`app.example.com` on Vercel, `api.example.com` on
-Railway), delete the `/api` rewrite, set `VITE_API_URL=https://api.example.com`,
-and set `TRUST_PROXY=1`. Both hosts must share a registrable domain for
-`SameSite=Lax` cookies. The frontend CSP in `vercel.json` also needs the API
-origin added to `connect-src`.
+the backend host), delete the `/api` rewrite, set
+`VITE_API_URL=https://api.example.com`, and set `TRUST_PROXY=1`. Both hosts must
+share a registrable domain for `SameSite=Lax` cookies. The frontend CSP in
+`vercel.json` also needs the API origin added to `connect-src`.
 
 ## API
 

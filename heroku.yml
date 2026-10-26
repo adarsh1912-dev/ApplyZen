@@ -1,0 +1,9 @@
+build:
+  docker:
+    web: Dockerfile
+release:
+  image: web
+  command:
+    - node src/db/migrate.js up
+run:
+  web: node src/server.js
