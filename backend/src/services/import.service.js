@@ -5,7 +5,7 @@ import { env } from '../config/env.js';
 import { importResume, llmConfigured } from './llm-provider.js';
 import { createResumeWithVersion } from '../repositories/resumes.repo.js';
 
-const MAX_BYTES = 5 * 1024 * 1024;
+const MAX_BYTES = 3 * 1024 * 1024;
 const SUPPORTED = new Set(['pdf', 'docx', 'txt', 'md']);
 
 const uid = (p) => `${p}_${Math.random().toString(36).slice(2, 9)}`;
@@ -52,7 +52,7 @@ export async function importResumeFromFile({ userId, filename, dataBase64 }) {
   }
   const buffer = Buffer.from(dataBase64, 'base64');
   if (buffer.length === 0) throw fail(400, 'BAD_REQUEST', 'The uploaded file is empty.');
-  if (buffer.length > MAX_BYTES) throw fail(413, 'PAYLOAD_TOO_LARGE', 'Files are limited to 5 MB.');
+  if (buffer.length > MAX_BYTES) throw fail(413, 'PAYLOAD_TOO_LARGE', 'Files are limited to 3 MB.');
 
   const raw = (await extractResumeText(filename, buffer)) ?? '';
   const text = raw.replace(/\r/g, '').replace(/[ \t]+/g, ' ').replace(/\n{3,}/g, '\n\n').trim();

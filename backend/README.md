@@ -32,7 +32,7 @@ and restart Vite. Without it the UI runs offline on localStorage.
 npm test   # Vitest + Supertest, real Postgres test DB (applyzen_test)
 ```
 
-33 integration tests: auth, resumes/versions, applications, analyses.
+53 integration tests: auth, origins, resumes/versions, applications, analyses, import, and tailoring.
 The suite refuses to run against a non-`*_test` database and runs files
 sequentially in one worker (shared DB + truncating setup).
 
@@ -71,7 +71,7 @@ Envelope: `{ success: true, data }` / `{ success: false, error: { code, message,
 | POST/GET | `/api/analyses` | heuristic engine (labeled); LLM if configured |
 | GET | `/api/analyses/:id` | |
 | POST | `/api/resumes/:id/tailor` | AI rewrite for a posting (review-then-apply; 503 if unconfigured) |
-| POST | `/api/resumes/import` | file → AI-structured résumé (PDF/DOCX/TXT/MD, ≤5 MB) |
+| POST | `/api/resumes/import` | file → AI-structured résumé (PDF/DOCX/TXT/MD, ≤3 MB) |
 | GET | `/api/templates` | static catalog |
 
 Statuses are stored lowercase (`saved…rejected`, CHECK-constrained) and
@@ -115,8 +115,8 @@ provider failures return 502 `AI_PROVIDER_FAILED` with internals hidden.
 
 ### Import: bring your own résumé
 
-`POST /api/resumes/import` accepts `{ filename, data_base64 }` (≤ 5 MB decoded;
-this one route allows an 8 MB JSON body) and stores a new résumé. Text is
+`POST /api/resumes/import` accepts `{ filename, data_base64 }` (≤ 3 MB decoded;
+this one route allows a 4.5 MB JSON body) and stores a new résumé. Text is
 extracted server-side — `unpdf` for PDF, `mammoth` for DOCX, UTF-8 for
 TXT/MD — normalized, then structured into resume content by the provider.
 Scanned (image-only) PDFs return 422 `IMPORT_EMPTY_TEXT`, unsupported
@@ -127,8 +127,10 @@ and edit it like any other.
 
 ## Security notes
 
-- Zod validation on bodies, params, and query strings; 1 MB JSON limit.
-- Helmet headers, explicit CORS (never wildcard + credentials).
+- Zod validation on bodies, params, and query strings; 1 MB JSON limit (4.5 MB on the import route).
+- Helmet headers including a deny-by-default CSP; explicit CORS allowlist (exact origins or scoped preview patterns, never a bare wildcard + credentials).
+- `FRONTEND_ORIGIN` accepts a comma-separated allowlist; `FRONTEND_ORIGIN_PATTERNS` adds scoped wildcard origins for preview deployments.
+- `TRUST_PROXY` controls Express proxy hops for correct client IPs and rate limiting.
 - Ownership enforced inside SQL (`AND user_id = $…`), never just in the UI.
 - Error middleware maps PG codes (23505→409) and hides internals (no stacks/SQL).
 - Safe logging: no passwords, tokens, cookies, or resume content in logs.
@@ -136,6 +138,5 @@ and edit it like any other.
 
 ## Limitations / not built
 
-OAuth, email delivery, payments, file uploads (PDF/DOCX import), and
-server-side PDF rendering (frontend uses print-to-PDF). Resume content is
-Zod-bounded but otherwise schemaless JSONB.
+OAuth, email delivery, payments, and server-side PDF rendering (the frontend
+uses print-to-PDF). Resume content is Zod-bounded but otherwise schemaless JSONB.

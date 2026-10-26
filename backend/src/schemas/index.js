@@ -177,7 +177,7 @@ export const tailorOutputSchema = z.object({
 // ---- Resume import (file upload → structured résumé) ----
 export const importResumeSchema = z.object({
   filename: z.string().min(1).max(200),
-  data_base64: z.string().min(1).max(8_000_000),
+  data_base64: z.string().min(1).max(4_300_000),
 });
 
 // Provider output for file structuring. Ids, visible, and order are added by

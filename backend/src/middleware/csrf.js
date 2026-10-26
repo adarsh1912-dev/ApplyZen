@@ -1,4 +1,4 @@
-import { allowedOrigins, env } from '../config/env.js';
+import { isAllowedOrigin } from '../config/env.js';
 import { AppError } from '../utils/http.js';
 
 /**
@@ -14,7 +14,7 @@ export function csrfOriginCheck(req, _res, next) {
   if (!origin) return next();
   try {
     const host = new URL(origin).origin;
-    if (!allowedOrigins.includes(host)) {
+    if (!isAllowedOrigin(host)) {
       return next(new AppError(403, 'CSRF_BLOCKED', 'Cross-origin request blocked.'));
     }
   } catch {
@@ -22,5 +22,3 @@ export function csrfOriginCheck(req, _res, next) {
   }
   return next();
 }
-
-export { env };

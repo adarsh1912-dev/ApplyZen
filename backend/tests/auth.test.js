@@ -99,3 +99,40 @@ describe('auth', () => {
     expect(JSON.stringify(res.body)).not.toMatch(/stack|at .*\(/);
   });
 });
+
+describe('origin checks', () => {
+  const previewOrigin = 'https://applyzen-pr-12-test.vercel.app';
+
+  it('emits CORS headers for exact and configured preview origins', async () => {
+    const exact = await request(app).get('/api/templates').set('Origin', 'http://localhost:5173');
+    expect(exact.status).toBe(200);
+    expect(exact.headers['access-control-allow-origin']).toBe('http://localhost:5173');
+
+    const preview = await request(app).get('/api/templates').set('Origin', previewOrigin);
+    expect(preview.status).toBe(200);
+    expect(preview.headers['access-control-allow-origin']).toBe(previewOrigin);
+  });
+
+  it('omits CORS headers for unknown origins instead of returning 500', async () => {
+    const res = await request(app).get('/api/templates').set('Origin', 'https://evil.example');
+    expect(res.status).toBe(200);
+    expect(res.headers['access-control-allow-origin']).toBeUndefined();
+  });
+
+  it('blocks cookie-authenticated mutations from unknown origins', async () => {
+    const agent = await authedAgent(uniqueEmail());
+    const res = await agent.post('/api/applications')
+      .set('Origin', 'https://evil.example')
+      .send({ company: 'Acme', job_title: 'Engineer' });
+    expect(res.status).toBe(403);
+    expect(res.body.error.code).toBe('CSRF_BLOCKED');
+  });
+
+  it('allows cookie-authenticated mutations from a configured preview origin', async () => {
+    const agent = await authedAgent(uniqueEmail());
+    const res = await agent.post('/api/applications')
+      .set('Origin', previewOrigin)
+      .send({ company: 'Acme', job_title: 'Engineer' });
+    expect(res.status).toBe(201);
+  });
+});

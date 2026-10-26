@@ -232,7 +232,7 @@ const bytesToBase64 = (bytes) => {
  */
 export async function importResumeFromFile(file) {
   if (!isOnline()) throw new Error('Résumé import needs the online mode.');
-  if (file.size > 5 * 1024 * 1024) throw new Error('Files are limited to 5 MB.');
+  if (file.size > 3 * 1024 * 1024) throw new Error('Files are limited to 3 MB.');
   const bytes = new Uint8Array(await file.arrayBuffer());
   const { resume, warnings, model } = await api.resumes.importFile({
     filename: file.name,

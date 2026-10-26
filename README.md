@@ -77,7 +77,7 @@ Switch templates at any time from the templates gallery; content is template-ind
 
 - **Bullet rewrites** inside the editor's AI panel: stronger verbs, concrete metrics, tighter phrasing — each suggestion can be accepted, edited, or rejected.
 - **Tailoring (autoconfigure):** `POST /api/resumes/:id/tailor` rewrites the summary, bullets, and skill order for a specific posting and returns a changelog. The server reassembles the final document itself — education, projects, certifications, contact details, visibility, and section order can never be altered or dropped; if the model invents or deletes an experience entry, the call **fails** instead of saving. You review the diff, then apply in place (with an automatic undo snapshot) or save as a copy.
-- **Résumé import:** upload PDF/DOCX/TXT/MD (≤ 5 MB decoded). Text is extracted server-side (`unpdf`, `mammoth`), then structured into sections by the provider. Scanned/image-only PDFs are rejected with a clear 422; password-protected files are rejected; unsupported extensions get 415.
+- **Résumé import:** upload PDF/DOCX/TXT/MD (≤ 3 MB decoded). Text is extracted server-side (`unpdf`, `mammoth`), then structured into sections by the provider. Scanned/image-only PDFs are rejected with a clear 422; password-protected files are rejected; unsupported extensions get 415.
 
 ### Application tracker
 
@@ -130,7 +130,7 @@ Switch templates at any time from the templates gallery; content is template-ind
 
 ## Quick start
 
-Prerequisites: Docker, Node.js 20+.
+Prerequisites: Docker, Node.js 22+.
 
 ```bash
 # 1. Start Postgres (from the repo root)
@@ -173,7 +173,9 @@ To try the offline mode instead, omit `frontend/.env` (or leave `VITE_API_URL` e
 | `DATABASE_URL` | yes | e.g. `postgres://applyzen:applyzen_dev@127.0.0.1:5432/applyzen` |
 | `ACCESS_TOKEN_SECRET` | yes | 32+ random chars; signs access JWTs |
 | `REFRESH_TOKEN_PEPPER` | no | Extra pepper for refresh-token hashes |
-| `FRONTEND_ORIGIN` | yes | Exact origin for CORS + CSRF checks, e.g. `http://localhost:5173` |
+| `FRONTEND_ORIGIN` | yes | Comma-separated exact origins for CORS + CSRF, e.g. `http://localhost:5173`. Required in production. |
+| `FRONTEND_ORIGIN_PATTERNS` | no | Comma-separated wildcard patterns for preview deployments, e.g. `https://applyzen-*-team.vercel.app` |
+| `TRUST_PROXY` | no | Express trust-proxy hops. Default `1` (Railway edge); use `2` behind Vercel → Railway. |
 | `PORT` | no | Default `4000` |
 | `COOKIE_SECURE` | no | `true` in production (HTTPS) |
 | `LLM_API_URL` / `LLM_API_KEY` / `LLM_MODEL` | no | OpenAI-compatible provider; unset = heuristic engine |
@@ -183,7 +185,49 @@ To try the offline mode instead, omit `frontend/.env` (or leave `VITE_API_URL` e
 
 | Variable | Notes |
 |---|---|
-| `VITE_API_URL` | Backend origin (e.g. `http://localhost:4000`). Leave empty for offline mode. |
+| `VITE_API_URL` | Backend origin (e.g. `http://localhost:4000`). Leave empty for offline mode. On Vercel with the `/api` proxy, set `/`. |
+
+## Deployment (Railway + Vercel)
+
+The included setup proxies `/api/*` from Vercel to Railway. The browser sees one
+origin, so the `SameSite=Lax` auth cookies stay first-party.
+
+### Backend on Railway
+
+1. Create a Railway project from this repo and add a PostgreSQL database.
+2. Backend service settings: **Root Directory** `backend`, **Builder** Dockerfile,
+   **Healthcheck Path** `/ready`.
+3. Generate a public domain, then set:
+
+```env
+NODE_ENV=production
+PORT=4000
+DATABASE_URL=${{Postgres.DATABASE_URL}}
+ACCESS_TOKEN_SECRET=<openssl rand -hex 32>
+REFRESH_TOKEN_PEPPER=<openssl rand -hex 32>
+FRONTEND_ORIGIN=https://your-app.vercel.app
+COOKIE_SECURE=true
+TRUST_PROXY=2
+```
+
+Add `FRONTEND_ORIGIN_PATTERNS=https://your-project-*-your-team.vercel.app`
+if preview deployments should authenticate. The Dockerfile runs migrations on
+start. Do not run `npm run seed` in production.
+
+### Frontend on Vercel
+
+1. Import the repo, set **Root Directory** `frontend` (the framework/build
+   settings come from `frontend/vercel.json`).
+2. Add `VITE_API_URL=/` for the Production and Preview environments.
+3. Replace the placeholder in the `/api/:path*` rewrite in
+   `frontend/vercel.json` with the Railway service domain, then deploy.
+4. Set Railway's `FRONTEND_ORIGIN` to the final Vercel domain and redeploy.
+
+For separate custom domains (`app.example.com` on Vercel, `api.example.com` on
+Railway), delete the `/api` rewrite, set `VITE_API_URL=https://api.example.com`,
+and set `TRUST_PROXY=1`. Both hosts must share a registrable domain for
+`SameSite=Lax` cookies. The frontend CSP in `vercel.json` also needs the API
+origin added to `connect-src`.
 
 ## API
 
@@ -201,7 +245,7 @@ All responses use one envelope: `{ "success": true, "data": … }` or `{ "succes
 | GET/POST | `/api/resumes/:id/versions` | Snapshots (`MAX+1` in a transaction) |
 | GET | `/api/resumes/:id/versions/:version` | |
 | POST | `/api/resumes/:id/tailor` | AI rewrite for a posting (review-then-apply; 503 if no provider) |
-| POST | `/api/resumes/import` | File → structured resume (PDF/DOCX/TXT/MD, ≤ 5 MB) |
+| POST | `/api/resumes/import` | File → structured resume (PDF/DOCX/TXT/MD, ≤ 3 MB) |
 | POST/GET | `/api/applications` | Filter `status,q,from,to`; allowlisted sort; pagination |
 | GET/PATCH/DELETE | `/api/applications/:id` | |
 | GET | `/api/applications/stats` | SQL aggregation per status |
@@ -242,7 +286,7 @@ cd backend
 npm test
 ```
 
-49 integration tests across auth, resumes/versions, applications, analyses, import, and tailoring — run against a real Postgres database (`applyzen_test`, created and migrated automatically). The suite refuses to run against a non-`*_test` database and truncates between tests. Provider-facing tests force the LLM off so runs are deterministic.
+53 integration tests across auth, origins, resumes/versions, applications, analyses, import, and tailoring — run against a real Postgres database (`applyzen_test`, created and migrated automatically). The suite refuses to run against a non-`*_test` database and truncates between tests. Provider-facing tests force the LLM off so runs are deterministic.
 
 Frontend: `npm run lint` (Oxlint) and `npm run build`.
 
@@ -250,8 +294,9 @@ Frontend: `npm run lint` (Oxlint) and `npm run build`.
 
 - Cookie auth: HttpOnly, `SameSite=Lax`, optional `Secure`; access tokens bound to live server-side sessions (revocation is immediate).
 - CSRF: strict Origin/Referer validation on mutations whenever auth cookies are present, on top of `SameSite=Lax`.
-- Zod validation on bodies, params, and query strings; 1 MB JSON limit (8 MB only on the import route, which is base64-capped to 5 MB decoded).
-- Helmet headers; explicit CORS allowlist (never wildcard with credentials).
+- Zod validation on bodies, params, and query strings; 1 MB JSON limit (4.5 MB only on the import route, which is base64-capped to 3 MB decoded).
+- Helmet headers including a deny-by-default CSP; explicit CORS allowlist (exact origins or explicitly scoped preview patterns, never a bare wildcard).
+- Production CSP and security headers for the static frontend in `frontend/vercel.json`.
 - Rate limiting on auth and analysis endpoints.
 - Ownership checks in SQL; error middleware maps PG codes (23505 → 409) and hides internals; graceful shutdown drains connections.
 

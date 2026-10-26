@@ -146,7 +146,7 @@ export default function Analyzer() {
               <button type="button" onClick={() => fileRef.current?.click()} disabled={importing} className="btn-secondary w-full">
                 <Upload size={15} /> {importing ? 'Reading and structuring…' : 'Import résumé from file'}
               </button>
-              <p className="hint">PDF, DOCX, TXT or MD · up to 5 MB · stored as a new résumé in your account.</p>
+              <p className="hint">PDF, DOCX, TXT or MD · up to 3 MB · stored as a new résumé in your account.</p>
             </div>
           )}
           <div className="mt-4 flex items-center justify-between">

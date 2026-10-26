@@ -14,6 +14,7 @@ export default defineConfig({
       DATABASE_URL: 'postgres://applyzen:applyzen_dev@127.0.0.1:5432/applyzen_test',
       ACCESS_TOKEN_SECRET: 'test-only-secret-that-is-long-enough-for-hs256-use',
       FRONTEND_ORIGIN: 'http://localhost:5173',
+      FRONTEND_ORIGIN_PATTERNS: 'https://applyzen-*-test.vercel.app',
       BCRYPT_ROUNDS: '4',
       // Never let the suite hit a real provider, even when backend/.env has a
       // key configured: dotenv skips vars that already exist in the process.

@@ -11,7 +11,7 @@ export class ApiError extends Error {
   }
 }
 
-async function request(path, { method = 'GET', body, query } = {}) {
+async function rawRequest(path, { method = 'GET', body, query } = {}) {
   const url = BASE + path + (query ? '?' + new URLSearchParams(query).toString() : '');
   const res = await fetch(url, {
     method,
@@ -26,6 +26,38 @@ async function request(path, { method = 'GET', body, query } = {}) {
     throw new ApiError(res.status, e.code ?? 'REQUEST_FAILED', e.message ?? `Request failed (${res.status}).`, e.details ?? []);
   }
   return json.data;
+}
+
+// A 401 on these means bad credentials, not an expired session.
+const NO_REFRESH_PATHS = new Set(['/api/auth/login', '/api/auth/register', '/api/auth/refresh']);
+
+let refreshPromise = null;
+
+/**
+ * Call the API, refreshing the 15-minute access token once on 401 and retrying.
+ * Concurrent 401s share one refresh so token rotation cannot race itself.
+ */
+async function request(path, opts = {}) {
+  try {
+    return await rawRequest(path, opts);
+  } catch (err) {
+    const canRefresh = err instanceof ApiError
+      && err.status === 401
+      && apiEnabled()
+      && !NO_REFRESH_PATHS.has(path);
+    if (!canRefresh) throw err;
+
+    refreshPromise ??= rawRequest('/api/auth/refresh', { method: 'POST' }).finally(() => {
+      refreshPromise = null;
+    });
+
+    try {
+      await refreshPromise;
+    } catch {
+      throw err;
+    }
+    return rawRequest(path, opts);
+  }
 }
 
 export const api = {

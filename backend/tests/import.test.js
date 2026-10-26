@@ -99,9 +99,9 @@ describe('resume import', () => {
     expect(res.body.error.message).toMatch(/scanned/i);
   });
 
-  it('rejects files over 5 MB (413)', async () => {
+  it('rejects files over 3 MB (413)', async () => {
     const agent = await authedAgent(uniqueEmail());
-    const big = Buffer.alloc(5 * 1024 * 1024 + 8, 0x61);
+    const big = Buffer.alloc(3 * 1024 * 1024 + 8, 0x61);
     const res = await agent.post('/api/resumes/import').send({ filename: 'big.txt', data_base64: big.toString('base64') });
     expect(res.status).toBe(413);
   });
