@@ -1,7 +1,7 @@
 -- 006_applications: job tracker rows. Status stored lowercase; API maps to
 -- display labels (Saved/Applied/Assessment/Interview/Offer/Rejected).
-CREATE EXTENSION IF NOT EXISTS pg_trgm;
-
+-- pg_trgm is created by 005a_pg_trgm.sql so Heroku's extension validator can
+-- process it as a standalone statement.
 CREATE TABLE job_applications (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES users (id) ON DELETE CASCADE,

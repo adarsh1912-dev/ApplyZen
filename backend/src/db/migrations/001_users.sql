@@ -1,7 +1,6 @@
 -- 001_users: accounts. Email is normalized (lowercased/trimmed) in the app;
 -- the CITEXT-free UNIQUE on the normalized value enforces case-insensitive uniqueness.
-CREATE EXTENSION IF NOT EXISTS pgcrypto;
-
+-- gen_random_uuid() is built into PostgreSQL 13+, so no pgcrypto extension is needed.
 CREATE TABLE users (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL CHECK (char_length(name) BETWEEN 1 AND 120),
