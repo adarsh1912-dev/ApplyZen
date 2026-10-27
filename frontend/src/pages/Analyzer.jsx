@@ -130,8 +130,11 @@ export default function Analyzer() {
 
   return (
     <AppShell>
-      <h1 className="text-[26px] font-extrabold tracking-tight">Job description analyzer</h1>
-      <p className="mt-1 max-w-[64ch] text-sm text-muted">Paste a posting, pick a resume, and see where the texts overlap. Estimates are heuristic — not hiring probabilities.</p>
+      <div>
+        <p className="section-title">Job matching</p>
+        <h1 className="mt-2 text-3xl font-semibold tracking-[-0.035em] text-ink sm:text-4xl">Job description analyzer</h1>
+        <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted">Paste a posting, choose a resume, and see where the evidence overlaps. Estimates are text-based — never a hiring probability.</p>
+      </div>
 
       <div className="mt-5 grid gap-4 lg:grid-cols-[1fr_1.2fr]">
         <div className="card p-5">
@@ -159,15 +162,37 @@ export default function Analyzer() {
         </div>
 
         <div>
-          {!result && <div className="card grid h-full min-h-[300px] place-items-center p-10 text-center"><div><ScanSearch className="mx-auto text-stone-300" size={36} /><p className="mt-2 font-bold">No analysis yet</p><p className="mx-auto mt-1 max-w-sm text-sm text-muted">Paste a job description and run the analysis. {isOnline() ? 'It is analysed on your API and saved to your account.' : 'Nothing leaves your browser.'}</p></div></div>}
+          {!result && (
+            <div className="card grid h-full min-h-[320px] place-items-center p-10 text-center">
+              <div className="max-w-sm">
+                <span className="mx-auto grid h-12 w-12 place-items-center rounded-xl bg-accent-50 text-accent-700 dark:bg-accent-600/15 dark:text-accent-200">
+                  <ScanSearch size={22} />
+                </span>
+                <p className="mt-4 text-lg font-semibold tracking-tight text-ink">No analysis yet</p>
+                <p className="mt-1 text-sm leading-relaxed text-muted">
+                  Paste a job description and run the analysis. {isOnline() ? 'It is analysed on your API and saved to your account.' : 'Nothing leaves your browser.'}
+                </p>
+              </div>
+            </div>
+          )}
           {result && (
             <div className="space-y-3">
               <div className="card p-5">
                 <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div><p className="section-title">Compatibility estimate</p><p className="mt-1 text-2xl font-extrabold tracking-tight">{result.coverage}% <span className="text-sm font-semibold text-muted">· {result.band}</span></p></div>
-                  <div className="h-2.5 w-full max-w-[220px] overflow-hidden rounded-full bg-soft" role="progressbar" aria-valuenow={result.coverage} aria-valuemin={0} aria-valuemax={100} aria-label="Coverage"><div className="h-full rounded-full bg-accent-600 transition-all" style={{ width: result.coverage + '%' }} /></div>
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="section-title">Compatibility estimate</p>
+                      <span className={`chip !text-[9px] ${result.engine === 'llm' ? 'chip-accent' : ''}`}>
+                        {result.engine === 'llm' ? 'AI analysis' : 'Simulated analysis'}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-3xl font-semibold tracking-[-0.03em] text-ink">{result.coverage}% <span className="text-sm font-medium text-muted">· {result.band}</span></p>
+                  </div>
+                  <div className="h-2.5 w-full max-w-[220px] overflow-hidden rounded-full bg-soft" role="progressbar" aria-valuenow={result.coverage} aria-valuemin={0} aria-valuemax={100} aria-label="Coverage">
+                    <div className="h-full rounded-full bg-accent-600 transition-all" style={{ width: result.coverage + '%' }} />
+                  </div>
                 </div>
-                <p className="mt-3 flex gap-1.5 rounded-lg bg-soft p-3 text-[13px] leading-relaxed text-muted"><Info size={15} className="mt-0.5 shrink-0" /> Based only on keyword overlap between the posting and your resume text. It ignores experience quality, portfolio, and referrals — treat it as a checklist, not a verdict.</p>
+                <p className="mt-3 flex gap-1.5 rounded-lg bg-paper/70 p-3 text-[12.5px] leading-relaxed text-muted"><Info size={15} className="mt-0.5 shrink-0" /> Based on the text in the posting and your resume. It ignores experience quality, portfolio, and referrals — treat it as a checklist, not a verdict.</p>
               </div>
 
               {isOnline() && (
@@ -175,7 +200,7 @@ export default function Analyzer() {
                   {applied ? (
                     <div className="flex flex-wrap items-center justify-between gap-3">
                       <div>
-                        <p className="flex items-center gap-1.5 text-sm font-bold"><CheckCircle2 size={15} className="text-emerald-600" /> {applied.asCopy ? 'Saved as a new tailored copy' : 'Applied to this résumé'}</p>
+                        <p className="flex items-center gap-1.5 text-sm font-semibold"><CheckCircle2 size={15} className="text-success" /> {applied.asCopy ? 'Saved as a new tailored copy' : 'Applied to this résumé'}</p>
                         <p className="mt-1 text-[13px] text-muted">Re-run the analysis to see the updated match.</p>
                       </div>
                       <button className="btn-primary" onClick={openEditor}>Open in editor <ArrowRight size={15} /></button>
@@ -183,7 +208,7 @@ export default function Analyzer() {
                   ) : (
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div className="max-w-[52ch]">
-                        <p className="flex items-center gap-1.5 text-sm font-bold"><Wand2 size={15} className="text-accent-600" /> Autoconfigure for this job</p>
+                        <p className="flex items-center gap-1.5 text-sm font-semibold"><Wand2 size={15} className="text-accent-600" /> Autoconfigure for this job</p>
                         <p className="mt-1 text-[13px] leading-relaxed text-muted">Rewrites your summary, bullets, and skill order to target this posting — using only what is already in your résumé. You review every change before anything is saved.</p>
                         {tailoring && <p className="hint mt-2">Asking the AI to rewrite your résumé — this usually takes 5–20 seconds.</p>}
                       </div>
@@ -196,16 +221,16 @@ export default function Analyzer() {
               )}
 
               <div className="grid gap-3 sm:grid-cols-2">
-                <div className="card p-5"><p className="flex items-center gap-1.5 text-sm font-bold"><CheckCircle2 size={15} className="text-emerald-600" /> Matching ({result.matched.length})</p><div className="mt-2 flex flex-wrap gap-1.5">{result.matched.length === 0 && <span className="text-sm text-muted">None detected.</span>}{result.matched.map(s => <span key={s} className="chip !border-emerald-200 !bg-emerald-50">{s}</span>)}</div>
+                <div className="card p-5"><p className="flex items-center gap-1.5 text-sm font-semibold"><CheckCircle2 size={15} className="text-success" /> Matching ({result.matched.length})</p><div className="mt-2 flex flex-wrap gap-1.5">{result.matched.length === 0 && <span className="text-sm text-muted">None detected.</span>}{result.matched.map(s => <span key={s} className="chip chip-accent">{s}</span>)}</div>
                   <ul className="mt-3 space-y-1 text-[13px] text-muted">{result.strengths.map((s, i) => <li key={i}>· {s}</li>)}</ul></div>
-                <div className="card p-5"><p className="flex items-center gap-1.5 text-sm font-bold"><AlertTriangle size={15} className="text-amber-600" /> Not demonstrated ({result.missing.length})</p><div className="mt-2 flex flex-wrap gap-1.5">{result.missing.length === 0 && <span className="text-sm text-muted">Full coverage — strong.</span>}{result.missing.map(s => <span key={s} className="chip !border-amber-200 !bg-amber-50">{s}</span>)}</div>
+                <div className="card p-5"><p className="flex items-center gap-1.5 text-sm font-semibold"><AlertTriangle size={15} className="text-warning" /> Not demonstrated ({result.missing.length})</p><div className="mt-2 flex flex-wrap gap-1.5">{result.missing.length === 0 && <span className="text-sm text-muted">Full coverage — strong.</span>}{result.missing.map(s => <span key={s} className="chip chip-warning">{s}</span>)}</div>
                   <ul className="mt-3 space-y-1 text-[13px] text-muted">{result.suggestions.map((s, i) => <li key={i}>· {s}</li>)}</ul></div>
               </div>
-              <div className="card p-5"><p className="flex items-center gap-1.5 text-sm font-bold"><Lightbulb size={15} className="text-accent-600" /> Next actions</p>
+              <div className="card p-5"><p className="flex items-center gap-1.5 text-sm font-semibold"><Lightbulb size={15} className="text-accent-600" /> Next actions</p>
                 <ol className="mt-2 list-decimal space-y-1 pl-5 text-sm leading-relaxed text-muted">
                   {actions.map((a, i) => <li key={i}>{a}</li>)}
                 </ol>
-                <p className="hint mt-2">{result.engine === 'llm' ? 'AI analysis · provider-backed model call.' : 'Simulated analysis · deterministic keyword match, no model call.'}</p></div>
+                <p className="hint mt-2">{result.engine === 'llm' ? 'Provider-backed model call. Output is validated before it is saved.' : 'Deterministic keyword match. No model call.'}</p></div>
             </div>
           )}
         </div>
@@ -233,11 +258,11 @@ function TailorDialog({ tailored, template, busy, onApply, onClose }) {
   }, [onClose]);
 
   return (
-    <div role="dialog" aria-modal="true" aria-labelledby="tailor-title" className="fixed inset-0 z-50 grid place-items-center bg-black/50 p-4" onClick={onClose}>
+    <div role="dialog" aria-modal="true" aria-labelledby="tailor-title" className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4 backdrop-blur-sm" onClick={onClose}>
       <div className="card max-h-[88vh] w-full max-w-2xl overflow-auto p-6" onClick={e => e.stopPropagation()}>
         <div className="flex items-start justify-between gap-3">
           <div>
-            <h2 id="tailor-title" className="text-lg font-extrabold">Autoconfigured résumé</h2>
+            <h2 id="tailor-title" className="text-lg font-semibold tracking-tight">Autoconfigured résumé</h2>
             <p className="mt-1 text-[13px] text-muted">Review before saving — nothing has been changed yet.{tailored.model ? ` Tailored by ${tailored.model}.` : ''}</p>
           </div>
           <button onClick={onClose} className="btn-ghost" aria-label="Close"><X size={16} /></button>
@@ -251,8 +276,8 @@ function TailorDialog({ tailored, template, busy, onApply, onClose }) {
         </div>
 
         {tailored.warnings.length > 0 && (
-          <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3 dark:border-amber-800 dark:bg-amber-950/40">
-            <p className="flex items-center gap-1.5 text-[13px] font-bold"><AlertTriangle size={14} className="text-amber-600" /> Worth verifying</p>
+          <div className="mt-4 rounded-lg border border-warning/25 bg-warning/10 p-3 dark:border-warning/30">
+            <p className="flex items-center gap-1.5 text-[13px] font-semibold"><AlertTriangle size={14} className="text-warning" /> Worth verifying</p>
             <ul className="mt-1 space-y-1 text-[13px] leading-relaxed">{tailored.warnings.map((w, i) => <li key={i}>· {w}</li>)}</ul>
           </div>
         )}

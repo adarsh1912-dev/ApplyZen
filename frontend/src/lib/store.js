@@ -120,8 +120,9 @@ export function bulletSuggestions(bullet) {
 }
 
 export function improveBullet(bullet) {
+  // Strengthen the opener only. Never invent a metric; the user must supply the
+  // evidence, and the suggestion text explicitly asks for one when it is missing.
   let s = bullet.replace(/responsible for|worked on|helped with/i, 'Led').trim();
-  if (!/\d/.test(s)) s += ' — impacting 10k+ users.';
   s = s.charAt(0).toUpperCase() + s.slice(1);
   if (!/[.]$/.test(s)) s += '.';
   return s;

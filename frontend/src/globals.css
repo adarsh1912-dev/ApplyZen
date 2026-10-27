@@ -1,0 +1,184 @@
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:wght@400;500;600&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+  --paper: 247 245 240;
+  --surface: 255 255 255;
+  --soft: 234 230 222;
+  --ink: 23 25 22;
+  --muted: 104 106 100;
+  --line: 221 216 207;
+  --line-strong: 203 196 184;
+  --success: 36 87 67;
+  --warning: 138 90 31;
+  --danger: 157 58 58;
+}
+
+.dark {
+  color-scheme: dark;
+  --paper: 20 22 19;
+  --surface: 28 31 27;
+  --soft: 38 42 37;
+  --ink: 240 238 232;
+  --muted: 166 168 158;
+  --line: 62 68 60;
+  --line-strong: 82 88 79;
+  --success: 120 180 146;
+  --warning: 214 168 96;
+  --danger: 220 120 120;
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  @apply bg-paper text-ink font-sans antialiased;
+  font-feature-settings: "cv11", "ss01", "ss03";
+  text-rendering: optimizeLegibility;
+}
+
+::selection { background: #245743; color: #fff; }
+
+:focus-visible {
+  outline: 2px solid rgb(var(--success));
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* A faint ambient wash keeps marketing pages from feeling flat. */
+.paper-canvas {
+  background-image:
+    radial-gradient(ellipse 80% 55% at 78% 6%, rgb(36 87 67 / 0.07), transparent 62%),
+    radial-gradient(ellipse 55% 40% at 8% 0%, rgb(184 138 88 / 0.05), transparent 58%);
+}
+
+.dark .paper-canvas {
+  background-image:
+    radial-gradient(ellipse 80% 55% at 78% 6%, rgb(98 150 120 / 0.11), transparent 62%),
+    radial-gradient(ellipse 55% 40% at 8% 0%, rgb(184 138 88 / 0.05), transparent 58%);
+}
+
+.hero-stage { --hero-scale: .44; }
+@media (min-width: 640px) { .hero-stage { --hero-scale: .56; } }
+@media (min-width: 1024px) { .hero-stage { --hero-scale: .62; } }
+
+.hero-sheet {
+  transition: transform 500ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-sheet { transition: none; }
+}
+
+@layer components {
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg bg-accent-600 px-4 py-2.5 text-sm font-semibold text-accent-foreground shadow-sm transition-colors duration-150 hover:bg-accent-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-400 disabled:pointer-events-none disabled:opacity-50 dark:hover:bg-accent-500;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg border border-line bg-surface px-4 py-2.5 text-sm font-semibold text-ink shadow-sm transition-colors duration-150 hover:border-line-strong hover:bg-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-400 disabled:pointer-events-none disabled:opacity-50;
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium text-muted transition-colors duration-150 hover:bg-soft hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-400 disabled:pointer-events-none disabled:opacity-50;
+  }
+
+  .input {
+    @apply w-full rounded-lg border border-line bg-surface px-3 py-2.5 text-sm text-ink shadow-sm transition-colors duration-150 placeholder:text-muted/60 hover:border-line-strong focus:border-success focus:outline-none focus:ring-2 focus:ring-success/15;
+  }
+
+  .label {
+    @apply mb-1.5 block text-[12px] font-semibold text-ink;
+  }
+
+  .hint {
+    @apply mt-1 text-xs leading-relaxed text-muted;
+  }
+
+  .card {
+    @apply rounded-xl border border-line bg-surface shadow-card;
+  }
+
+  .card-hover {
+    @apply transition duration-200 ease-out hover:-translate-y-0.5 hover:shadow-float;
+  }
+
+  .section-title {
+    @apply text-[11px] font-semibold uppercase tracking-[0.14em] text-muted;
+  }
+
+  .chip {
+    @apply inline-flex items-center gap-1 rounded-full border border-line bg-soft px-2.5 py-0.5 text-[11px] font-medium text-ink;
+  }
+
+  .chip-accent {
+    @apply border-accent-200 bg-accent-50 text-accent-800 dark:border-accent-600/30 dark:bg-accent-600/15 dark:text-accent-200;
+  }
+
+  .chip-warning {
+    @apply border-warning/25 bg-warning/10 text-warning;
+  }
+
+  .surface-panel {
+    @apply rounded-xl border border-line bg-surface;
+  }
+
+  .skeleton {
+    @apply animate-pulse rounded-md bg-soft;
+  }
+}
+
+select.input option {
+  background-color: rgb(var(--surface));
+  color: rgb(var(--ink));
+}
+
+@page { size: A4; margin: 0; }
+
+@media print {
+  html, body { background: #fff !important; }
+  .no-print { display: none !important; }
+  .print-doc { box-shadow: none !important; margin: 0 !important; }
+  /* Flatten the app/editor layout so the A4 sheet owns the printed page. */
+  main, main > div { max-width: none !important; margin: 0 !important; padding: 0 !important; width: auto !important; }
+  .editor-grid { display: block !important; }
+  .preview-frame {
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: none !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+    padding: 0 !important;
+  }
+  .preview-frame > div {
+    width: auto !important;
+    height: auto !important;
+    margin: 0 !important;
+    position: static !important;
+  }
+  .doc-page {
+    position: static !important;
+    width: 210mm !important;
+    min-height: 297mm !important;
+    transform: none !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    margin: 0 !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
+}
+
+/* Fixed A4 sheet: 210mm × 297mm (794 × 1123px at 96dpi). Print overrides use exact mm. */
+.doc-page { width: 794px; min-height: 1123px; }
+/* Reserve the scrollbar gutter so fit-to-width measuring never oscillates. */
+.preview-frame { scrollbar-gutter: stable; }
+.scroll-thin::-webkit-scrollbar { width: 8px; height: 8px; }
+.scroll-thin::-webkit-scrollbar-thumb { background: rgb(var(--line-strong)); border-radius: 8px; }
+.dark .scroll-thin::-webkit-scrollbar-thumb { background: rgb(var(--line)); }

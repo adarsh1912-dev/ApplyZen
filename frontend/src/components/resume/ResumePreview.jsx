@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { forwardRef, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { TEMPLATES } from '../../lib/store';
 
 // A4 at 96dpi: 210mm × 297mm = 794 × 1123 CSS pixels.
@@ -123,7 +123,7 @@ export default function ResumePreview({ resume, template, zoom = 1, printMode = 
 
   const frameClass = printMode
     ? 'print-doc'
-    : `preview-frame scroll-thin overflow-auto rounded-xl border border-line bg-stone-200/60 p-4 sm:p-8 shadow-inner dark:bg-black/40 ${
+    : `preview-frame scroll-thin overflow-auto rounded-xl border border-line bg-soft/70 p-4 shadow-inset sm:p-8 dark:bg-black/30 ${
         pannable ? (panning ? 'cursor-grabbing select-none' : 'cursor-grab') : ''
       }`;
 
@@ -141,33 +141,57 @@ export default function ResumePreview({ resume, template, zoom = 1, printMode = 
         className="relative mx-auto"
         style={printMode ? undefined : { width: A4_W * scale, height: pageH * scale }}
       >
-        <article
+        <ResumeSheet
           ref={pageRef}
-          className={`doc-page bg-white text-left shadow-doc ${printMode ? 'print-doc' : 'absolute left-0 top-0'}`}
+          resume={resume}
+          template={t}
+          className={printMode ? 'print-doc' : 'absolute left-0 top-0 shadow-doc'}
           style={{
             transform: printMode ? undefined : `scale(${scale})`,
             transformOrigin: 'top left',
             fontSize: 13.5,
           }}
-          aria-label={`Resume preview — ${TEMPLATES.find(x => x.id === t)?.name}`}
-        >
-          {t === 'classic' && <Classic r={resume} />}
-          {t === 'minimal' && <Minimal r={resume} />}
-          {t === 'technical' && <Technical r={resume} />}
-          {t === 'compact' && <Compact r={resume} />}
-          {t === 'engineer' && <Engineer r={resume} />}
-          {t === 'terminal' && <Terminal r={resume} />}
-          {t === 'opensource' && <OpenSource r={resume} />}
-          {t === 'staff' && <Staff r={resume} />}
-        </article>
+        />
       </div>
     </div>
   );
 }
 
+function ResumeContent({ resume, template }) {
+  return (
+    <>
+      {template === 'classic' && <Classic r={resume} />}
+      {template === 'minimal' && <Minimal r={resume} />}
+      {template === 'technical' && <Technical r={resume} />}
+      {template === 'compact' && <Compact r={resume} />}
+      {template === 'engineer' && <Engineer r={resume} />}
+      {template === 'terminal' && <Terminal r={resume} />}
+      {template === 'opensource' && <OpenSource r={resume} />}
+      {template === 'staff' && <Staff r={resume} />}
+    </>
+  );
+}
+
+/** Static A4 document sheet shared by the editor, landing preview, and template gallery. */
+export const ResumeSheet = forwardRef(function ResumeSheet({ resume, template, className = '', style, ...rest }, ref) {
+  const t = template || resume.template;
+  return (
+    <article
+      ref={ref}
+      className={`doc-page bg-white text-left ${className}`}
+      style={{ fontSize: 13.5, ...style }}
+      aria-label={`Résumé preview — ${TEMPLATES.find((x) => x.id === t)?.name}`}
+      {...rest}
+    >
+      <ResumeContent resume={resume} template={t} />
+    </article>
+  );
+});
+
 const px = { pad: '2rem 2.2rem' };
 
 function Classic({ r }) {
+  const vis = (k) => r.visible?.[k] !== false;
   return (
     <div style={{ padding: px.pad }} className="font-serif text-stone-900">
       <header className="border-b-2 border-stone-900 pb-3 text-center">
@@ -175,8 +199,8 @@ function Classic({ r }) {
         <p className="mt-0.5 text-[12px] italic text-stone-600">{r.personal.role || 'Professional title'}</p>
         <p className="mt-1 text-[11px] text-stone-600">{[r.personal.email, r.personal.phone, r.personal.location].filter(Boolean).join('  ·  ')}</p>
       </header>
-      <DocSection title="Summary" serif><p className="text-[12.5px] leading-relaxed">{r.summary || 'Two-line professional summary…'}</p></DocSection>
-      <DocSection title="Experience" serif>
+      {vis('summary') && <DocSection title="Summary" serif><p className="text-[12.5px] leading-relaxed">{r.summary || 'Two-line professional summary…'}</p></DocSection>}
+      {vis('experience') && <DocSection title="Experience" serif>
         {r.experience.length === 0 && <Empty />}
         {r.experience.map(e => (
           <div key={e.id} className="mb-3">
@@ -184,39 +208,40 @@ function Classic({ r }) {
             <ul className="ml-4 list-disc text-[12px] leading-relaxed">{e.bullets.map((b, i) => <li key={i}>{b}</li>)}</ul>
           </div>
         ))}
-      </DocSection>
-      <DocSection title="Education" serif>{r.education.map(e => <p key={e.id} className="text-[12px]"><b>{e.school}</b> — {e.degree} <span className="text-stone-500">({e.dates})</span></p>)}</DocSection>
-      <SkillsLine skills={r.skills} serif />
+      </DocSection>}
+      {vis('education') && <DocSection title="Education" serif>{r.education.map(e => <p key={e.id} className="text-[12px]"><b>{e.school}</b> — {e.degree} <span className="text-stone-500">({e.dates})</span></p>)}</DocSection>}
+      {vis('skills') && <SkillsLine skills={r.skills} serif />}
     </div>
   );
 }
 
 function Minimal({ r }) {
+  const vis = (k) => r.visible?.[k] !== false;
   return (
     <div style={{ padding: '2.2rem 2.4rem' }} className="font-sans text-stone-900">
       <header>
         <h1 className="text-[30px] font-extrabold leading-none tracking-[-0.03em]">{r.personal.name || 'Your Name'}</h1>
-        <p className="mt-1 text-[13px] font-semibold text-indigo-700">{r.personal.role || 'Professional title'}</p>
+        <p className="mt-1 text-[13px] font-semibold text-accent-700">{r.personal.role || 'Professional title'}</p>
         <p className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[11.5px] text-stone-500">{[r.personal.email, r.personal.phone, r.personal.location, r.personal.website].filter(Boolean).join('   ·   ') || 'email · phone · location'}</p>
       </header>
       <div className="my-4 h-px bg-stone-200" />
-      {r.visible.summary !== false && r.summary && (<section className="mb-4"><MiniH title="Summary" /><p className="max-w-[62ch] text-[12.5px] leading-relaxed text-stone-700">{r.summary}</p></section>)}
-      <section className="mb-4"><MiniH title="Experience" />
+      {vis('summary') && r.summary && (<section className="mb-4"><MiniH title="Summary" /><p className="max-w-[62ch] text-[12.5px] leading-relaxed text-stone-700">{r.summary}</p></section>)}
+      {vis('experience') && <section className="mb-4"><MiniH title="Experience" />
         {r.experience.length === 0 && <Empty />}
         {r.experience.map(e => (
           <div key={e.id} className="mb-3.5">
             <div className="flex items-baseline justify-between"><p className="text-[13.5px] font-bold">{e.role} <span className="font-medium text-stone-500">· {e.company}</span></p><span className="text-[11px] font-medium text-stone-400">{e.dates}</span></div>
-            <ul className="mt-1 space-y-1">{e.bullets.map((b, i) => <li key={i} className="flex gap-2 text-[12.5px] leading-relaxed text-stone-700"><span className="mt-[7px] h-1 w-1 shrink-0 rounded-full bg-indigo-600" />{b}</li>)}</ul>
+            <ul className="mt-1 space-y-1">{e.bullets.map((b, i) => <li key={i} className="flex gap-2 text-[12.5px] leading-relaxed text-stone-700"><span className="mt-[7px] h-1 w-1 shrink-0 rounded-full bg-accent-600" />{b}</li>)}</ul>
           </div>
         ))}
-      </section>
+      </section>}
       <div className="grid grid-cols-2 gap-6">
-        <section><MiniH title="Skills" /><div className="flex flex-wrap gap-1.5">{r.skills.map(s => <span key={s} className="rounded-md bg-stone-100 px-2 py-0.5 text-[11px] font-medium">{s}</span>)}</div></section>
-        <section><MiniH title="Education" />{r.education.map(e => <p key={e.id} className="text-[12px]"><b>{e.school}</b><br /><span className="text-stone-500">{e.degree} · {e.dates}</span></p>)}</section>
+        {vis('skills') && <section><MiniH title="Skills" /><div className="flex flex-wrap gap-1.5">{r.skills.map(s => <span key={s} className="rounded-md bg-stone-100 px-2 py-0.5 text-[11px] font-medium">{s}</span>)}</div></section>}
+        {vis('education') && <section><MiniH title="Education" />{r.education.map(e => <p key={e.id} className="text-[12px]"><b>{e.school}</b><br /><span className="text-stone-500">{e.degree} · {e.dates}</span></p>)}</section>}
       </div>
-      {(r.projects?.length > 0 || r.certifications?.length > 0) && (
+      {((vis('projects') && r.projects?.length > 0) || r.certifications?.length > 0) && (
         <section className="mt-4"><MiniH title="Projects & Certifications" />
-          {r.projects.map(p => <p key={p.id} className="text-[12px]"><b>{p.name}</b> — <span className="text-stone-600">{p.detail}</span></p>)}
+          {vis('projects') && r.projects.map(p => <p key={p.id} className="text-[12px]"><b>{p.name}</b> — <span className="text-stone-600">{p.detail}</span></p>)}
           {r.certifications.map(c => <p key={c.id} className="text-[12px]"><b>{c.name}</b> <span className="text-stone-500">· {c.detail}</span></p>)}
         </section>
       )}
@@ -225,47 +250,57 @@ function Minimal({ r }) {
 }
 
 function Technical({ r }) {
+  const vis = (k) => r.visible?.[k] !== false;
   return (
     <div style={{ padding: '1.8rem 2rem' }} className="font-sans text-stone-900">
-      <header className="flex items-start justify-between rounded-lg bg-stone-900 px-5 py-4 text-white">
+      <header className="flex items-start justify-between rounded-lg bg-accent-950 px-5 py-4 text-white">
         <div><h1 className="font-mono text-[20px] font-bold tracking-tight">{r.personal.name || 'your_name'}</h1>
           <p className="font-mono text-[11.5px] text-stone-300">{r.personal.role || 'software_engineer'} — {r.personal.location}</p></div>
         <div className="text-right font-mono text-[10.5px] leading-relaxed text-stone-300">{r.personal.email}<br />{r.personal.website || r.personal.linkedin}</div>
       </header>
-      {r.summary && <p className="mt-3 border-l-2 border-stone-900 pl-3 font-mono text-[11.5px] leading-relaxed text-stone-700">{r.summary}</p>}
-      <TechH title="experience" />
-      {r.experience.map(e => (
-        <div key={e.id} className="mb-2.5"><p className="font-mono text-[12px] font-bold">▸ {e.role} @ {e.company} <span className="font-normal text-stone-400">[{e.dates}]</span></p>
-          <ul className="ml-5 list-square font-mono text-[11.5px] leading-relaxed text-stone-700">{e.bullets.map((b, i) => <li key={i}>{b}</li>)}</ul></div>
-      ))}
-      <TechH title="skills" />
-      <p className="font-mono text-[11.5px] leading-relaxed">{r.skills.join('  |  ') || 'Add skills separated by commas in the editor.'}</p>
-      <TechH title="education" />
-      {r.education.map(e => <p key={e.id} className="font-mono text-[11.5px]">{e.degree} — {e.school} ({e.dates})</p>)}
-      {(r.projects?.length > 0) && (<><TechH title="projects" />{r.projects.map(p => <p key={p.id} className="font-mono text-[11.5px]"><b>{p.name}:</b> {p.detail}</p>)}</>)}
+      {vis('summary') && r.summary && <p className="mt-3 border-l-2 border-stone-900 pl-3 font-mono text-[11.5px] leading-relaxed text-stone-700">{r.summary}</p>}
+      {vis('experience') && <>
+        <TechH title="experience" />
+        {r.experience.map(e => (
+          <div key={e.id} className="mb-2.5"><p className="font-mono text-[12px] font-bold">▸ {e.role} @ {e.company} <span className="font-normal text-stone-400">[{e.dates}]</span></p>
+            <ul className="ml-5 list-square font-mono text-[11.5px] leading-relaxed text-stone-700">{e.bullets.map((b, i) => <li key={i}>{b}</li>)}</ul></div>
+        ))}
+      </>}
+      {vis('skills') && <>
+        <TechH title="skills" />
+        <p className="font-mono text-[11.5px] leading-relaxed">{r.skills.join('  |  ') || 'Add skills separated by commas in the editor.'}</p>
+      </>}
+      {vis('education') && <>
+        <TechH title="education" />
+        {r.education.map(e => <p key={e.id} className="font-mono text-[11.5px]">{e.degree} — {e.school} ({e.dates})</p>)}
+      </>}
+      {vis('projects') && r.projects?.length > 0 && (<><TechH title="projects" />{r.projects.map(p => <p key={p.id} className="font-mono text-[11.5px]"><b>{p.name}:</b> {p.detail}</p>)}</>)}
     </div>
   );
 }
 
 function Compact({ r }) {
+  const vis = (k) => r.visible?.[k] !== false;
   return (
     <div style={{ padding: '1.6rem 1.8rem' }} className="grid grid-cols-[1fr_2fr] gap-6 font-sans text-stone-900">
-      <aside className="rounded-lg bg-indigo-950 p-4 text-white">
+      <aside className="rounded-lg bg-accent-950 p-4 text-white">
         <h1 className="text-[18px] font-extrabold leading-tight">{r.personal.name || 'Your Name'}</h1>
-        <p className="text-[11px] font-medium text-indigo-200">{r.personal.role}</p>
+        <p className="text-[11px] font-medium text-accent-200">{r.personal.role}</p>
         <div className="my-3 h-px bg-white/15" />
-        <SideH t="Contact" /><p className="text-[10.5px] leading-relaxed text-indigo-100">{[r.personal.email, r.personal.phone, r.personal.location, r.personal.website].filter(Boolean).join('\n') || 'contact details'}</p>
-        <SideH t="Skills" /><ul className="space-y-1">{r.skills.map(s => <li key={s} className="text-[10.5px]">— {s}</li>)}</ul>
-        <SideH t="Education" />{r.education.map(e => <p key={e.id} className="text-[10.5px]"><b>{e.school}</b><br />{e.degree}<br /><span className="text-indigo-200">{e.dates}</span></p>)}
+        <SideH t="Contact" /><p className="text-[10.5px] leading-relaxed text-accent-100">{[r.personal.email, r.personal.phone, r.personal.location, r.personal.website].filter(Boolean).join('\n') || 'contact details'}</p>
+        {vis('skills') && <><SideH t="Skills" /><ul className="space-y-1">{r.skills.map(s => <li key={s} className="text-[10.5px]">— {s}</li>)}</ul></>}
+        {vis('education') && <><SideH t="Education" />{r.education.map(e => <p key={e.id} className="text-[10.5px]"><b>{e.school}</b><br />{e.degree}<br /><span className="text-accent-200">{e.dates}</span></p>)}</>}
       </aside>
       <div>
-        {r.summary && <><SideH t="Profile" dark /><p className="text-[11.5px] leading-relaxed text-stone-700">{r.summary}</p></>}
-        <SideH t="Experience" dark />
-        {r.experience.map(e => (
-          <div key={e.id} className="mb-2.5"><p className="text-[12px] font-bold">{e.role} · {e.company} <span className="ml-1 font-normal text-stone-400">{e.dates}</span></p>
-            <ul className="ml-4 list-disc text-[11.5px] leading-relaxed text-stone-700">{e.bullets.map((b, i) => <li key={i}>{b}</li>)}</ul></div>
-        ))}
-        {r.projects?.length > 0 && (<><SideH t="Projects" dark />{r.projects.map(p => <p key={p.id} className="text-[11.5px]"><b>{p.name}</b> — {p.detail}</p>)}</>)}
+        {vis('summary') && r.summary && <><SideH t="Profile" dark /><p className="text-[11.5px] leading-relaxed text-stone-700">{r.summary}</p></>}
+        {vis('experience') && <>
+          <SideH t="Experience" dark />
+          {r.experience.map(e => (
+            <div key={e.id} className="mb-2.5"><p className="text-[12px] font-bold">{e.role} · {e.company} <span className="ml-1 font-normal text-stone-400">{e.dates}</span></p>
+              <ul className="ml-4 list-disc text-[11.5px] leading-relaxed text-stone-700">{e.bullets.map((b, i) => <li key={i}>{b}</li>)}</ul></div>
+          ))}
+        </>}
+        {vis('projects') && r.projects?.length > 0 && (<><SideH t="Projects" dark />{r.projects.map(p => <p key={p.id} className="text-[11.5px]"><b>{p.name}</b> — {p.detail}</p>)}</>)}
       </div>
     </div>
   );
@@ -312,7 +347,7 @@ function Engineer({ r }) {
       <header className="flex items-end justify-between gap-4 border-b border-stone-300 pb-3">
         <div>
           <h1 className="text-[24px] font-bold tracking-tight">{r.personal.name || 'Your Name'}</h1>
-          <p className="mt-0.5 text-[12.5px] font-semibold text-indigo-700">{r.personal.role || 'Software Engineer'}</p>
+          <p className="mt-0.5 text-[12.5px] font-semibold text-accent-700">{r.personal.role || 'Software Engineer'}</p>
         </div>
         <p className="text-right text-[10.5px] leading-relaxed text-stone-500">
           {[r.personal.email, r.personal.phone].filter(Boolean).join('  ·  ')}<br />
@@ -328,10 +363,10 @@ function Engineer({ r }) {
           {r.experience.map(e => (
             <div key={e.id} className="mb-3">
               <div className="flex items-baseline justify-between gap-3">
-                <p className="text-[13px] font-bold">{e.role} <span className="font-medium text-indigo-700">· {e.company}</span></p>
+                <p className="text-[13px] font-bold">{e.role} <span className="font-medium text-accent-700">· {e.company}</span></p>
                 <span className="shrink-0 text-[11px] font-medium text-stone-400">{e.dates}</span>
               </div>
-              <ul className="mt-1 space-y-0.5 text-[11.5px] leading-relaxed text-stone-700">{e.bullets.map((b, i) => <li key={i} className="flex gap-2"><span className="mt-[7px] h-1 w-1 shrink-0 rounded-full bg-indigo-600" />{b}</li>)}</ul>
+              <ul className="mt-1 space-y-0.5 text-[11.5px] leading-relaxed text-stone-700">{e.bullets.map((b, i) => <li key={i} className="flex gap-2"><span className="mt-[7px] h-1 w-1 shrink-0 rounded-full bg-accent-600" />{b}</li>)}</ul>
             </div>
           ))}
         </>
@@ -366,7 +401,7 @@ function Terminal({ r }) {
       <header className="border-b-2 border-stone-900 pb-2.5">
         <p className="text-[10.5px] text-stone-400">$ whoami</p>
         <h1 className="text-[21px] font-bold tracking-tight">{r.personal.name || 'your_name'}</h1>
-        <p className="text-[11.5px] font-medium text-emerald-800">{r.personal.role || 'software_engineer'}</p>
+        <p className="text-[11.5px] font-medium text-accent-700">{r.personal.role || 'software_engineer'}</p>
         <p className="mt-1 text-[10.5px] leading-relaxed text-stone-500">
           {[r.personal.email, r.personal.phone, r.personal.location].filter(Boolean).join('  |  ')}<br />
           {[r.personal.website, r.personal.linkedin].filter(Boolean).join('  |  ')}
@@ -393,7 +428,7 @@ function Terminal({ r }) {
       )}
       {vis('projects') && r.projects?.length > 0 && (
         <><TermH title="projects" />
-          {r.projects.map(p => <p key={p.id} className="mb-1 text-[11px] leading-relaxed"><span className="text-emerald-800">▶</span> <b>{p.name}</b> — <span className="text-stone-600">{p.detail}</span></p>)}
+          {r.projects.map(p => <p key={p.id} className="mb-1 text-[11px] leading-relaxed"><span className="text-accent-700">▶</span> <b>{p.name}</b> — <span className="text-stone-600">{p.detail}</span></p>)}
         </>
       )}
       {vis('education') && r.education.length > 0 && (
@@ -405,12 +440,12 @@ function Terminal({ r }) {
   );
 }
 
-// Open Source — projects-forward, GitHub-flavoured link chips, indigo accent rule.
+// Open Source — projects-forward, GitHub-flavoured link chips, forest accent rule.
 function OpenSource({ r }) {
   const vis = (k) => r.visible?.[k] !== false;
   const links = [r.personal.website, r.personal.linkedin, r.personal.email].filter(Boolean);
   return (
-    <div style={{ padding: '1.8rem 1.7rem 1.8rem 1.4rem', borderLeft: '3px solid #4F46E5' }} className="font-sans text-stone-900">
+    <div style={{ padding: '1.8rem 1.7rem 1.8rem 1.4rem', borderLeft: '3px solid #245743' }} className="font-sans text-stone-900">
       <header>
         <h1 className="text-[23px] font-bold tracking-tight">{r.personal.name || 'Your Name'}</h1>
         <p className="mt-0.5 text-[12px] font-medium text-stone-600">{r.personal.role || 'Software Engineer'}{r.personal.location ? ` · ${r.personal.location}` : ''}</p>
@@ -429,7 +464,7 @@ function OpenSource({ r }) {
           {r.experience.map(e => (
             <div key={e.id} className="mb-3">
               <div className="flex items-baseline justify-between gap-3">
-                <p className="text-[12.5px] font-bold">{e.role} <span className="font-medium text-indigo-700">@ {e.company}</span></p>
+                <p className="text-[12.5px] font-bold">{e.role} <span className="font-medium text-accent-700">@ {e.company}</span></p>
                 <span className="shrink-0 text-[11px] text-stone-400">{e.dates}</span>
               </div>
               <ul className="ml-4 mt-1 list-disc space-y-0.5 text-[11.5px] leading-relaxed text-stone-700">{e.bullets.map((b, i) => <li key={i}>{b}</li>)}</ul>
@@ -511,17 +546,17 @@ function Staff({ r }) {
 const MiniH = ({ title }) => <h2 className="mb-2 text-[11px] font-bold uppercase tracking-[0.12em] text-stone-400">{title}</h2>;
 const EngH = ({ title }) => (
   <h2 className="mb-1.5 mt-3.5 flex items-center gap-1.5 text-[10.5px] font-bold uppercase tracking-[0.16em] text-stone-600">
-    <span className="h-2 w-2 shrink-0 rounded-[2px] bg-indigo-600" />{title}
+    <span className="h-2 w-2 shrink-0 rounded-[2px] bg-accent-600" />{title}
   </h2>
 );
 const TermH = ({ title }) => (
   <h2 className="mb-1.5 mt-3 border-b border-stone-300 pb-0.5 text-[11px] font-bold uppercase tracking-widest">
-    <span className="text-emerald-700">$</span> <span className="text-stone-500">./{title}</span>
+    <span className="text-accent-700">$</span> <span className="text-stone-500">./{title}</span>
   </h2>
 );
 const OssH = ({ title }) => (
   <h2 className="mb-2 mt-3.5 flex items-center gap-1.5 text-[10.5px] font-bold uppercase tracking-[0.18em] text-stone-700">
-    <span className="h-1.5 w-1.5 shrink-0 bg-indigo-600" />{title}
+    <span className="h-1.5 w-1.5 shrink-0 bg-accent-600" />{title}
   </h2>
 );
 const StaffSec = ({ title, children }) => (
@@ -534,7 +569,7 @@ const StaffSec = ({ title, children }) => (
   </section>
 );
 const TechH = ({ title }) => <h2 className="mb-1 mt-3 border-b border-stone-200 pb-1 font-mono text-[11px] font-bold uppercase tracking-widest text-stone-500">// {title}</h2>;
-const SideH = ({ t, dark }) => <h2 className={`mb-1.5 mt-3 text-[10px] font-bold uppercase tracking-[0.14em] ${dark ? 'text-stone-400' : 'text-indigo-300'}`}>{t}</h2>;
+const SideH = ({ t, dark }) => <h2 className={`mb-1.5 mt-3 text-[10px] font-bold uppercase tracking-[0.14em] ${dark ? 'text-stone-400' : 'text-accent-300'}`}>{t}</h2>;
 const Empty = () => <p className="text-[12px] italic text-stone-400">No entries yet — add one in the left panel.</p>;
 function DocSection({ title, children, serif }) {
   return <section className="mt-3"><h2 className={`border-b border-stone-300 pb-0.5 text-[12px] font-semibold uppercase tracking-[0.18em] text-stone-700 ${serif ? '' : ''}`}>{title}</h2><div className="mt-2">{children}</div></section>;

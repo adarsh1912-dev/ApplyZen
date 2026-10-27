@@ -291,6 +291,12 @@ export async function deleteApplication(id) {
 
 // ---------- analyses ----------
 
+export async function analysisCount() {
+  if (!isOnline()) return 0;
+  const { total } = await api.analyses.list({ per_page: 1 });
+  return total ?? 0;
+}
+
 export async function runAnalysis({ resumeId, jobDescription }) {
   if (!isOnline()) {
     const resume = loadResumes().find((r) => r.id === resumeId);
