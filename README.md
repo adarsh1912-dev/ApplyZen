@@ -1,14 +1,28 @@
-# Applyzen — AI Resume Builder
+# ApplyZen — AI Resume Builder
 
 **Build, tailor, and track job-ready resumes with AI — without inventing a single fact.**
 
-Applyzen is a full-stack resume workspace: a structured editor with a true-to-print A4 live preview, ATS-conscious templates, a job-description analyzer, evidence-based AI writing assistance, and an application tracker. Run it against the bundled Postgres backend with accounts and sync, or entirely offline in your browser — the same UI works both ways.
+<p align="center">
+  <img src="docs/assets/demo.gif" alt="ApplyZen demo: landing page, dashboard, resume editor, job analyzer, and templates" width="920" />
+</p>
+
+<p align="center">
+  <strong>53 integration tests</strong> · 8 templates · 3 MB import limit · ~120 KB gzipped frontend · <a href="https://applyzen.space">Live demo</a>
+</p>
+
+<p align="center">
+  <img src="docs/assets/landing.png" alt="ApplyZen landing page" width="45%" />
+  <img src="docs/assets/editor.png" alt="ApplyZen resume editor with a live A4 preview" width="45%" />
+</p>
+
+ApplyZen is a full-stack resume workspace: a structured editor with a true-to-print A4 live preview, ATS-conscious templates, a job-description analyzer, evidence-based AI writing assistance, and an application tracker. Run it against the bundled Postgres backend with accounts and sync, or entirely offline in your browser — the same UI works both ways.
 
 ---
 
 ## Table of contents
 
 - [Highlights](#highlights)
+- [Screenshots](#screenshots)
 - [Feature tour](#feature-tour)
 - [Tech stack](#tech-stack)
 - [Project structure](#project-structure)
@@ -28,10 +42,20 @@ Applyzen is a full-stack resume workspace: a structured editor with a true-to-pr
 - **True A4 document, not a web page.** The preview is a fixed 794 × 1123 px sheet that fits your pane, zooms 50–200% (buttons or scroll-wheel, cursor-anchored), pans by dragging when zoomed, and prints at exact 210 × 297 mm with zero margins — what you see is what the PDF contains.
 - **Eight templates**, all single-column or ATS-parse-friendly: four classics plus four engineering-focused layouts.
 - **Job-description matching that stays honest.** Skill overlap, demonstrated-vs-missing breakdowns, and rewrite suggestions — never a fake "hiring probability."
-- **AI that cites evidence.** Bullet rewrites strengthen verbs and add metrics, but every suggestion must relate to text already in your resume. Nothing about you is invented. Out of the box the same UI runs on a clearly-labeled deterministic simulator; connect any OpenAI-compatible provider (DeepSeek, OpenAI, …) to go live.
+- **AI that cites evidence.** Bullet rewrites strengthen verbs and add metrics only where the source text supports them, and every suggestion can be reviewed before use. Tailoring is server-guarded: invented or dropped experience entries fail instead of saving. Out of the box the same UI runs on a clearly-labeled deterministic simulator; connect any OpenAI-compatible provider (DeepSeek, OpenAI, …) to go live.
 - **Import your existing resume** (PDF, DOCX, TXT, MD) and have it structured into editable sections.
 - **Application tracker** with pipeline statuses, search/filter, and SQL-backed stats.
 - **Works offline.** With no backend configured, everything autosaves to localStorage — sign-up-free evaluation mode. Point the frontend at the API to enable accounts, sync, and AI.
+
+---
+
+## Screenshots
+
+| Dashboard | Job analyzer |
+| --- | --- |
+| ![Dashboard with resume and application stats](docs/assets/dashboard.png) | ![Job analyzer with compatibility results](docs/assets/analyzer.png) |
+| **Templates** | **Application tracker** |
+| ![Template gallery with real resume thumbnails](docs/assets/templates.png) | ![Application tracker with pipeline statuses](docs/assets/tracker.png) |
 
 ---
 
@@ -333,7 +357,7 @@ Interactive details and error codes are documented in [`backend/README.md`](back
 
 ## How the AI features work
 
-Applyzen separates *capability* from *honesty*:
+ApplyZen separates *capability* from *honesty*:
 
 1. **Heuristic engine (default).** Deterministic skill-lexicon overlap between the resume and the job description. Labeled `Simulated analysis` / `engine: "heuristic"` with `simulated: true`. It only ever cites text already present in the resume.
 2. **LLM engine (optional).** If `LLM_API_URL`/`LLM_API_KEY`/`LLM_MODEL` are set, analyses and tailoring go to an OpenAI-compatible provider. The system prompt treats the resume and posting as untrusted data; the JSON response is Zod-validated; any failure falls back to the heuristic. Provider errors and keys never reach clients.
