@@ -16,6 +16,9 @@ export default defineConfig({
       FRONTEND_ORIGIN: 'http://localhost:5173',
       FRONTEND_ORIGIN_PATTERNS: 'https://applyzen-*-test.vercel.app',
       BCRYPT_ROUNDS: '4',
+      EMAIL_PROVIDER: 'console',
+      APP_BASE_URL: 'http://localhost:5173',
+      EMAIL_FROM: 'ApplyZen <no-reply@applyzen.space>',
       // Never let the suite hit a real provider, even when backend/.env has a
       // key configured: dotenv skips vars that already exist in the process.
       LLM_API_URL: '',

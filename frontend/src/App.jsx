@@ -8,6 +8,9 @@ import Analyzer from './pages/Analyzer';
 import Templates from './pages/Templates';
 import Tracker from './pages/Tracker';
 import Login from './pages/Login';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
+import VerifyEmail from './pages/VerifyEmail';
 
 // Online mode needs an account for personal data; offline mode (no API
 // configured) keeps every page reachable, backed by localStorage.
@@ -27,6 +30,9 @@ export default function App() {
           <Routes>
             <Route path="/" element={<Landing />} />
             <Route path="/login" element={<Login />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/verify-email" element={<VerifyEmail />} />
             <Route path="/templates" element={<Templates />} />
             <Route path="/dashboard" element={<Protected><Dashboard /></Protected>} />
             <Route path="/editor" element={<Protected><Editor /></Protected>} />

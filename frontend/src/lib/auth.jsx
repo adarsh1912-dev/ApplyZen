@@ -27,8 +27,8 @@ export function AuthProvider({ children }) {
 
   const register = useCallback(async (name, email, password) => {
     const d = await api.register({ name, email, password });
-    setUser(d.user);
-    return d.user;
+    if (!d.verification_required) setUser(d.user);
+    return d;
   }, []);
 
   const logout = useCallback(async () => {

@@ -3,11 +3,15 @@ import { Client } from 'pg';
 // Runs once before all test files: ensures the test database exists and is migrated.
 // NEVER touches the development database — the name is hardcoded with a _test suffix guard.
 // Note: vitest `test.env` is NOT visible here, so connection values are set explicitly.
-process.env.NODE_ENV ??= 'test';
+// Force test mode even if the parent shell exports NODE_ENV=production.
+process.env.NODE_ENV = 'test';
 process.env.DATABASE_URL ??= 'postgres://applyzen:applyzen_dev@127.0.0.1:5432/applyzen_test';
 process.env.ACCESS_TOKEN_SECRET ??= 'test-only-secret-that-is-long-enough-for-hs256-use';
 process.env.FRONTEND_ORIGIN ??= 'http://localhost:5173';
 process.env.BCRYPT_ROUNDS ??= '4';
+process.env.EMAIL_PROVIDER = 'console';
+process.env.APP_BASE_URL ??= 'http://localhost:5173';
+process.env.EMAIL_FROM ??= 'ApplyZen <no-reply@applyzen.space>';
 export default async function globalSetup() {
   const testUrl = process.env.DATABASE_URL ?? '';
   if (!testUrl.endsWith('/applyzen_test')) {

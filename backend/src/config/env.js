@@ -59,6 +59,24 @@ export function isAllowedOrigin(origin) {
   return frontendOrigins.includes(normalized) || originPatternRegexes.some((re) => re.test(normalized));
 }
 
+const emailProvider = process.env.EMAIL_PROVIDER ?? (isProd ? 'resend' : 'console');
+if (!['console', 'resend'].includes(emailProvider)) {
+  throw new Error('EMAIL_PROVIDER must be "resend" or "console".');
+}
+
+const resendApiKey = process.env.RESEND_API_KEY ?? '';
+const emailFrom = process.env.EMAIL_FROM ?? 'ApplyZen <no-reply@applyzen.space>';
+const appBaseUrl = (process.env.APP_BASE_URL ?? frontendOrigins[0] ?? 'http://localhost:5173').replace(/\/$/, '');
+
+if (isProd) {
+  if (emailProvider === 'console') {
+    throw new Error('EMAIL_PROVIDER=console is not allowed in production. Configure Resend.');
+  }
+  if (emailProvider === 'resend' && (!resendApiKey || !emailFrom)) {
+    throw new Error('RESEND_API_KEY and EMAIL_FROM are required when EMAIL_PROVIDER=resend.');
+  }
+}
+
 /**
  * Express "trust proxy" setting. Keep the default at 1 hop (Railway's edge).
  * Behind Vercel -> Railway, use 2. Supports a hop count, false, or an
@@ -90,6 +108,12 @@ export const env = {
   accessTokenTtlSec: Number(process.env.ACCESS_TOKEN_TTL_SEC ?? 900), // 15 min
   refreshTokenTtlDays: Number(process.env.REFRESH_TOKEN_TTL_DAYS ?? 30),
   bcryptRounds: Number(process.env.BCRYPT_ROUNDS ?? (isTest ? 4 : 12)),
+  emailProvider,
+  resendApiKey,
+  emailFrom,
+  appBaseUrl,
+  emailVerificationTtlHours: Number(process.env.EMAIL_VERIFICATION_TTL_HOURS ?? 24),
+  passwordResetTtlMinutes: Number(process.env.PASSWORD_RESET_TTL_MINUTES ?? 30),
   llm: {
     url: process.env.LLM_API_URL || '',
     key: process.env.LLM_API_KEY || '',

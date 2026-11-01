@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-  <strong>53 integration tests</strong> · 8 templates · 3 MB import limit · ~120 KB gzipped frontend · <a href="https://applyzen.space">Live demo</a>
+  <strong>60 integration tests</strong> · 8 templates · 3 MB import limit · ~120 KB gzipped frontend · <a href="https://applyzen.space">Live demo</a>
 </p>
 
 <p align="center">
@@ -112,6 +112,7 @@ Switch templates at any time from the templates gallery; content is template-ind
 ### Accounts, sync & offline mode
 
 - **Online:** register/login over cookie-based auth. Passwords are bcrypt-hashed (12 rounds). Sessions are server-side rows; the access token is a 15-minute JWT *bound to the session id*, so logout revokes access immediately. Refresh tokens are opaque, 30 days, rotated on use, stored only as SHA-256 hashes. Manage devices via a sessions list with per-session revoke and logout-all.
+- **Email verification & recovery:** new accounts must verify through a one-time email link before they can sign in; resend is available from the sign-in screen. Password-reset links expire in 30 minutes and revoke every session. Verification/reset tokens are 32 random bytes, stored only as SHA-256 hashes, single-use, rate-limited, and the request endpoints return generic responses so they do not reveal whether an address has an account.
 - **Offline:** the entire app runs from localStorage with the same components and flows — a sample resume and tracker entries seed on first run. A demo seed (`npm run seed`) creates `demo@applyzen.local` / `demo-password-123` for the online mode.
 
 ### Interface
@@ -176,6 +177,8 @@ npm run dev       # http://localhost:5173
 
 To try the offline mode instead, omit `frontend/.env` (or leave `VITE_API_URL` empty) — the UI runs entirely in the browser.
 
+Email is not delivered locally: with `EMAIL_PROVIDER=console` (the default in development), the backend logs the verification and reset links. In production, set the Resend variables below.
+
 ### Scripts
 
 | Where | Command | Does |
@@ -200,9 +203,15 @@ To try the offline mode instead, omit `frontend/.env` (or leave `VITE_API_URL` e
 | `REFRESH_TOKEN_PEPPER` | no | Extra pepper for refresh-token hashes |
 | `FRONTEND_ORIGIN` | yes | Comma-separated exact origins for CORS + CSRF, e.g. `http://localhost:5173`. Required in production. |
 | `FRONTEND_ORIGIN_PATTERNS` | no | Comma-separated wildcard patterns for preview deployments, e.g. `https://applyzen-*-team.vercel.app` |
-| `TRUST_PROXY` | no | Express trust-proxy hops. Default `1` (Railway edge); use `2` behind Vercel → Railway. |
+| `TRUST_PROXY` | no | Express trust-proxy hops. Default `1`; use `2` behind Vercel → Heroku/Railway. |
 | `PORT` | no | Default `4000` |
 | `COOKIE_SECURE` | no | `true` in production (HTTPS) |
+| `EMAIL_PROVIDER` | no | `console` in development/test, `resend` in production. Production refuses `console`. |
+| `RESEND_API_KEY` | prod | Resend API key when `EMAIL_PROVIDER=resend` |
+| `EMAIL_FROM` | prod | Verified sender, e.g. `ApplyZen <no-reply@applyzen.space>` |
+| `APP_BASE_URL` | no | Canonical frontend URL used in email links; defaults to the first `FRONTEND_ORIGIN`. Use `https://www.applyzen.space` in production. |
+| `EMAIL_VERIFICATION_TTL_HOURS` | no | Default `24` |
+| `PASSWORD_RESET_TTL_MINUTES` | no | Default `30` |
 | `LLM_API_URL` / `LLM_API_KEY` / `LLM_MODEL` | no | OpenAI-compatible provider; unset = heuristic engine |
 | `LLM_TIMEOUT_MS` | no | Default `25000` |
 
@@ -250,8 +259,17 @@ heroku config:set -a <your-app-name> \
   FRONTEND_ORIGIN=https://your-app.vercel.app \
   COOKIE_SECURE=true \
   TRUST_PROXY=2 \
-  DATABASE_SSL=true
+  DATABASE_SSL=true \
+  EMAIL_PROVIDER=resend \
+  RESEND_API_KEY='<your-resend-api-key>' \
+  EMAIL_FROM='ApplyZen <no-reply@applyzen.space>' \
+  APP_BASE_URL=https://your-app.vercel.app
 ```
+
+For real verification/reset email, create a Resend account, add the DNS records it
+gives you, and verify your sending domain. `EMAIL_FROM` must use that verified
+domain and `APP_BASE_URL` must be the final frontend URL. Migration 008 backfills
+existing accounts as verified; only new registrations have to verify.
 
 3. Deploy. Either connect the repo in the Heroku dashboard and enable automatic
    deploys from `main` (`heroku.yml` builds the root Dockerfile and runs
@@ -310,6 +328,10 @@ REFRESH_TOKEN_PEPPER=<openssl rand -hex 32>
 FRONTEND_ORIGIN=https://your-app.vercel.app
 COOKIE_SECURE=true
 TRUST_PROXY=2
+EMAIL_PROVIDER=resend
+RESEND_API_KEY=<your-resend-api-key>
+EMAIL_FROM=ApplyZen <no-reply@applyzen.space>
+APP_BASE_URL=https://your-app.vercel.app
 ```
 
 The Dockerfile runs migrations on start. Do not run `npm run seed` in production.
@@ -321,12 +343,14 @@ The Dockerfile runs migrations on start. Do not run `npm run seed` in production
 2. Add `VITE_API_URL=/` for the Production and Preview environments.
 3. Replace the placeholder in the `/api/:path*` rewrite in
    `frontend/vercel.json` with the Heroku or Railway domain, then deploy.
-4. Set the backend's `FRONTEND_ORIGIN` to the final Vercel domain and redeploy.
+4. Set the backend's `FRONTEND_ORIGIN` and `APP_BASE_URL` to the final Vercel
+   domain and redeploy so verification/reset links point at the right host.
 
 For separate custom domains (`app.example.com` on Vercel, `api.example.com` on
 the backend host), delete the `/api` rewrite, set
 `VITE_API_URL=https://api.example.com`, and set `TRUST_PROXY=1`. Both hosts must
-share a registrable domain for `SameSite=Lax` cookies. The frontend CSP in
+share a registrable domain for `SameSite=Lax` cookies. Set
+`APP_BASE_URL=https://app.example.com` for email links. The frontend CSP in
 `vercel.json` also needs the API origin added to `connect-src`.
 
 ## API
@@ -336,7 +360,10 @@ All responses use one envelope: `{ "success": true, "data": … }` or `{ "succes
 | Method | Route | Notes |
 |---|---|---|
 | GET | `/health`, `/ready` | `ready` checks DB connectivity |
-| POST | `/api/auth/register`, `/login`, `/refresh`, `/logout`, `/logout-all` | Rate-limited; sets `az_at` / `az_rt` HttpOnly cookies |
+| POST | `/api/auth/register` | Creates an unverified account and sends a verification email; no cookies |
+| POST | `/api/auth/login`, `/refresh`, `/logout`, `/logout-all` | Rate-limited; verified login sets `az_at` / `az_rt` HttpOnly cookies |
+| POST | `/api/auth/verify-email`, `/resend-verification` | One-time verification link; resend responses are generic |
+| POST | `/api/auth/forgot-password`, `/reset-password` | Generic reset request; reset revokes every session |
 | GET | `/api/auth/me`, `/api/auth/sessions` | |
 | DELETE | `/api/auth/sessions/:id` | Revoke one session |
 | POST/GET | `/api/resumes` | List paginated (content omitted from lists) |
@@ -386,7 +413,7 @@ cd backend
 npm test
 ```
 
-53 integration tests across auth, origins, resumes/versions, applications, analyses, import, and tailoring — run against a real Postgres database (`applyzen_test`, created and migrated automatically). The suite refuses to run against a non-`*_test` database and truncates between tests. Provider-facing tests force the LLM off so runs are deterministic.
+60 integration tests across email verification, password reset, auth, origins, resumes/versions, applications, analyses, import, and tailoring — run against a real Postgres database (`applyzen_test`, created and migrated automatically). The suite refuses to run against a non-`*_test` database and truncates between tests. Provider-facing tests force the LLM off, and the email service is mocked, so runs are deterministic and never send mail.
 
 Frontend: `npm run lint` (Oxlint) and `npm run build`.
 
@@ -397,12 +424,14 @@ Frontend: `npm run lint` (Oxlint) and `npm run build`.
 - Zod validation on bodies, params, and query strings; 1 MB JSON limit (4.5 MB only on the import route, which is base64-capped to 3 MB decoded).
 - Helmet headers including a deny-by-default CSP; explicit CORS allowlist (exact origins or explicitly scoped preview patterns, never a bare wildcard).
 - Production CSP and security headers for the static frontend in `frontend/vercel.json`.
-- Rate limiting on auth and analysis endpoints.
+- Email verification/password reset tokens: 32 random bytes, stored only as SHA-256 hashes, single-use, expiry-scoped, and invalidated on reissue. Reset revokes every session.
+- Generic responses and identical login errors avoid account enumeration; a stricter limiter (5 per 15 minutes) covers email-sending endpoints.
+- Rate limiting on auth, email, and analysis endpoints.
 - Ownership checks in SQL; error middleware maps PG codes (23505 → 409) and hides internals; graceful shutdown drains connections.
 
 ## Limitations
 
-Not built (by design, for now): OAuth, email delivery, payments, server-side PDF rendering (export uses the browser's print-to-PDF), and multi-currency billing. Analyses are synchronous (single HTTP call) — no queue. LLM features require you to bring your own provider key.
+Not built (by design, for now): OAuth, payments, server-side PDF rendering (export uses the browser's print-to-PDF), and multi-currency billing. Analyses are synchronous (single HTTP call) — no queue. LLM features require you to bring your own provider key. Email delivery depends on a configured Resend account and verified sending domain.
 
 ---
 

@@ -1,6 +1,6 @@
 import { query } from '../config/database.js';
 
-const PUBLIC_COLUMNS = 'id, name, email, created_at, updated_at';
+const PUBLIC_COLUMNS = 'id, name, email, email_verified_at, created_at, updated_at';
 
 export async function createUser({ name, email, passwordHash }) {
   const { rows } = await query(
@@ -14,7 +14,7 @@ export async function createUser({ name, email, passwordHash }) {
 
 export async function findUserByEmail(email) {
   const { rows } = await query(
-    'SELECT id, name, email, password_hash, created_at, updated_at FROM users WHERE email = $1',
+    'SELECT id, name, email, password_hash, email_verified_at, created_at, updated_at FROM users WHERE email = $1',
     [email],
   );
   return rows[0] ?? null;

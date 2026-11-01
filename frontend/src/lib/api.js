@@ -29,7 +29,15 @@ async function rawRequest(path, { method = 'GET', body, query } = {}) {
 }
 
 // A 401 on these means bad credentials, not an expired session.
-const NO_REFRESH_PATHS = new Set(['/api/auth/login', '/api/auth/register', '/api/auth/refresh']);
+const NO_REFRESH_PATHS = new Set([
+  '/api/auth/login',
+  '/api/auth/register',
+  '/api/auth/refresh',
+  '/api/auth/verify-email',
+  '/api/auth/resend-verification',
+  '/api/auth/forgot-password',
+  '/api/auth/reset-password',
+]);
 
 let refreshPromise = null;
 
@@ -64,6 +72,10 @@ export const api = {
   // auth
   register: (b) => request('/api/auth/register', { method: 'POST', body: b }),
   login: (b) => request('/api/auth/login', { method: 'POST', body: b }),
+  verifyEmail: (token) => request('/api/auth/verify-email', { method: 'POST', body: { token } }),
+  resendVerification: (email) => request('/api/auth/resend-verification', { method: 'POST', body: { email } }),
+  forgotPassword: (email) => request('/api/auth/forgot-password', { method: 'POST', body: { email } }),
+  resetPassword: (token, password) => request('/api/auth/reset-password', { method: 'POST', body: { token, password } }),
   me: () => request('/api/auth/me'),
   refresh: () => request('/api/auth/refresh', { method: 'POST' }),
   logout: () => request('/api/auth/logout', { method: 'POST' }),

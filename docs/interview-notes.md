@@ -2,7 +2,7 @@
 
 ## Resume line
 
-> Built and deployed ApplyZen, a full-stack AI resume platform, with **53 backend integration tests** covering auth, concurrency, imports, and AI failure paths.
+> Built and deployed ApplyZen, a full-stack AI resume platform, with **60 backend integration tests** covering auth, email verification, password reset, concurrency, imports, and AI failure paths.
 
 Optional second line:
 

@@ -17,6 +17,20 @@ export const loginSchema = z.object({
   password: z.string().min(1, 'Password is required.').max(128),
 });
 
+const authEmail = z.string().trim().toLowerCase().email('Must be a valid email.').max(254);
+const authToken = z.string().min(32, 'Invalid token.').max(200, 'Invalid token.');
+
+export const verifyEmailSchema = z.object({ token: authToken });
+
+export const resendVerificationSchema = z.object({ email: authEmail });
+
+export const forgotPasswordSchema = z.object({ email: authEmail });
+
+export const resetPasswordSchema = z.object({
+  token: authToken,
+  password: z.string().min(8, 'Password must be at least 8 characters.').max(128),
+});
+
 // ---- Resume content (mirrors the frontend's data model, bounded) ----
 export const TEMPLATE_KEYS = ['classic', 'minimal', 'technical', 'compact', 'engineer', 'terminal', 'opensource', 'staff'];
 

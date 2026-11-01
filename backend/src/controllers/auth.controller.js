@@ -5,8 +5,31 @@ import * as sessions from '../repositories/sessions.repo.js';
 
 export async function register(req, res) {
   const result = await auth.register(req.body);
-  setAuthCookies(res, result);
-  return ok(res, { user: result.user }, 201);
+  return ok(res, {
+    user: result.user,
+    verification_required: result.verification_required,
+    email_sent: result.email_sent,
+  }, 201);
+}
+
+export async function verifyEmail(req, res) {
+  const result = await auth.verifyEmail(req.body.token);
+  return ok(res, result);
+}
+
+export async function resendVerification(req, res) {
+  const result = await auth.resendVerification(req.body.email);
+  return ok(res, result);
+}
+
+export async function forgotPassword(req, res) {
+  const result = await auth.forgotPassword(req.body.email);
+  return ok(res, result);
+}
+
+export async function resetPassword(req, res) {
+  const result = await auth.resetPassword(req.body);
+  return ok(res, result);
 }
 
 export async function login(req, res) {

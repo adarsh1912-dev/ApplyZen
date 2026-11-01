@@ -32,15 +32,22 @@ and restart Vite. Without it the UI runs offline on localStorage.
 npm test   # Vitest + Supertest, real Postgres test DB (applyzen_test)
 ```
 
-53 integration tests: auth, origins, resumes/versions, applications, analyses, import, and tailoring.
+60 integration tests: email verification, password reset, auth, origins, resumes/versions, applications, analyses, import, and tailoring.
 The suite refuses to run against a non-`*_test` database and runs files
 sequentially in one worker (shared DB + truncating setup).
 
 ## Auth design
 
-- `POST /api/auth/register|login` → sets two HttpOnly `SameSite=Lax` cookies:
-  `az_at` (JWT access, 15 min, **bound to the server-side session id**) and
-  `az_rt` (opaque 256-bit refresh token, 30 days; only its SHA-256 is stored).
+- `POST /api/auth/register` creates an unverified account, issues a one-time
+  verification token, and sends the email. It does **not** create a session.
+- `POST /api/auth/login` sets two HttpOnly `SameSite=Lax` cookies once the
+  email is verified: `az_at` (JWT access, 15 min, **bound to the server-side
+  session id**) and `az_rt` (opaque 256-bit refresh token, 30 days; only its
+  SHA-256 is stored).
+- `POST /api/auth/verify-email|resend-verification` use hashed, single-use,
+  expiring tokens. `POST /api/auth/forgot-password|reset-password` use the same
+  token model; reset revokes every session and marks the email verified.
+  Request endpoints return generic responses so they do not reveal accounts.
 - `POST /api/auth/refresh` rotates the refresh token (old one revoked atomically).
 - `POST /api/auth/logout` revokes the current session — access tokens stop
   working immediately because every request checks session liveness (indexed PK).
@@ -57,7 +64,10 @@ Envelope: `{ success: true, data }` / `{ success: false, error: { code, message,
 | Method | Route | Notes |
 |---|---|---|
 | GET | `/health`, `/ready` | readiness checks DB connectivity |
-| POST | `/api/auth/register`, `/login`, `/refresh`, `/logout`, `/logout-all` | rate-limited |
+| POST | `/api/auth/register` | creates an unverified account; sends a verification email; no cookies |
+| POST | `/api/auth/login`, `/refresh`, `/logout`, `/logout-all` | rate-limited; verified login sets cookies |
+| POST | `/api/auth/verify-email`, `/resend-verification` | one-time hashed tokens; generic resend response |
+| POST | `/api/auth/forgot-password`, `/reset-password` | generic reset request; reset revokes every session |
 | GET | `/api/auth/me`, `/api/auth/sessions` | |
 | DELETE | `/api/auth/sessions/:id` | revoke one session |
 | POST/GET | `/api/resumes` | list paginated, content omitted |
@@ -133,10 +143,12 @@ and edit it like any other.
 - `TRUST_PROXY` controls Express proxy hops for correct client IPs and rate limiting.
 - Ownership enforced inside SQL (`AND user_id = $…`), never just in the UI.
 - Error middleware maps PG codes (23505→409) and hides internals (no stacks/SQL).
+- Email verification/reset tokens are 32 random bytes, stored only as SHA-256 hashes, single-use, and expiring; reissuing invalidates the previous token. Reset revokes every session. Request endpoints are generic and rate-limited.
 - Safe logging: no passwords, tokens, cookies, or resume content in logs.
 - Graceful shutdown drains the HTTP server and closes the pool.
 
 ## Limitations / not built
 
-OAuth, email delivery, payments, and server-side PDF rendering (the frontend
-uses print-to-PDF). Resume content is Zod-bounded but otherwise schemaless JSONB.
+OAuth, payments, and server-side PDF rendering (the frontend uses print-to-PDF).
+Email delivery requires a configured Resend account and verified sending domain.
+Resume content is Zod-bounded but otherwise schemaless JSONB.

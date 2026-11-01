@@ -13,6 +13,16 @@ export const authLimiter = rateLimit({
   ...disabled,
 });
 
+// Email-sending endpoints are stricter: a burst can cost money and deliver spam.
+export const emailLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  message: { success: false, error: { code: 'RATE_LIMITED', message: 'Too many email requests. Try again later.' } },
+  ...disabled,
+});
+
 export const analysisLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 20,
