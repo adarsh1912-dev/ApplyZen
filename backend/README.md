@@ -32,7 +32,7 @@ and restart Vite. Without it the UI runs offline on localStorage.
 npm test   # Vitest + Supertest, real Postgres test DB (applyzen_test)
 ```
 
-60 integration tests: email verification, password reset, auth, origins, resumes/versions, applications, analyses, import, and tailoring.
+62 integration tests: email verification, password reset, auth, origins, resumes/versions, applications, analyses, import, and tailoring.
 The suite refuses to run against a non-`*_test` database and runs files
 sequentially in one worker (shared DB + truncating setup).
 

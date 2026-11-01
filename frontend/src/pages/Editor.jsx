@@ -365,7 +365,7 @@ function ProjectsEdit({ resume, update }) {
           </div>
           <div className="space-y-2">
             <input aria-label="Project name" placeholder="Name" className="input" value={p.name} onChange={(e) => update({ projects: resume.projects.map((x) => x.id === p.id ? { ...x, name: e.target.value } : x) })} />
-            <input aria-label="Project detail" placeholder="One-line outcome" className="input" value={p.detail} onChange={(e) => update({ projects: resume.projects.map((x) => x.id === p.id ? { ...x, detail: e.target.value } : x) })} />
+            <textarea aria-label="Project detail" rows={2} maxLength={2000} placeholder="What you built and the outcome" className="input resize-y leading-relaxed" value={p.detail} onChange={(e) => update({ projects: resume.projects.map((x) => x.id === p.id ? { ...x, detail: e.target.value } : x) })} />
           </div>
         </div>
       ))}

@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-  <strong>60 integration tests</strong> · 8 templates · 3 MB import limit · ~120 KB gzipped frontend · <a href="https://applyzen.space">Live demo</a>
+  <strong>62 integration tests</strong> · 8 templates · 3 MB import limit · ~120 KB gzipped frontend · <a href="https://applyzen.space">Live demo</a>
 </p>
 
 <p align="center">
@@ -413,7 +413,7 @@ cd backend
 npm test
 ```
 
-60 integration tests across email verification, password reset, auth, origins, resumes/versions, applications, analyses, import, and tailoring — run against a real Postgres database (`applyzen_test`, created and migrated automatically). The suite refuses to run against a non-`*_test` database and truncates between tests. Provider-facing tests force the LLM off, and the email service is mocked, so runs are deterministic and never send mail.
+62 integration tests across email verification, password reset, auth, origins, resumes/versions, applications, analyses, import, and tailoring — run against a real Postgres database (`applyzen_test`, created and migrated automatically). The suite refuses to run against a non-`*_test` database and truncates between tests. Provider-facing tests force the LLM off, and the email service is mocked, so runs are deterministic and never send mail.
 
 Frontend: `npm run lint` (Oxlint) and `npm run build`.
 

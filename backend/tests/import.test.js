@@ -12,6 +12,7 @@ vi.mock('../src/services/llm-provider.js', async (importOriginal) => {
 });
 
 import { llmConfigured, importResume } from '../src/services/llm-provider.js';
+import { importOutputSchema } from '../src/schemas/index.js';
 
 const TXT = `Jane Doe — Senior Software Engineer
 jane.doe@example.com | +1 555 010 2030 | Berlin
@@ -122,6 +123,26 @@ describe('resume import', () => {
     expect(res.status).toBe(502);
     expect(res.body.error.code).toBe('AI_PROVIDER_FAILED');
     expect(JSON.stringify(res.body)).not.toContain('secret');
+  });
+
+  it('accepts project details longer than the old 500-character limit', () => {
+    const out = providerOut();
+    out.projects = [{ name: 'Long project', detail: 'x'.repeat(900) }];
+    const parsed = importOutputSchema.parse(out);
+    expect(parsed.projects[0].detail).toHaveLength(900);
+  });
+
+  it('maps an overlong project detail from the provider to a specific 422', async () => {
+    const agent = await authedAgent(uniqueEmail());
+    const err = new Error('provider output failed validation');
+    err.code = 'LLM_SCHEMA';
+    err.issues = [{ path: ['projects', 0, 'detail'], code: 'too_big', message: 'Too big' }];
+    vi.mocked(importResume).mockRejectedValue(err);
+
+    const res = await agent.post('/api/resumes/import').send({ filename: 'jane.txt', data_base64: b64(TXT) });
+    expect(res.status).toBe(422);
+    expect(res.body.error.code).toBe('AI_INVALID_OUTPUT');
+    expect(res.body.error.message).toMatch(/project description/i);
   });
 
   it('validates input and requires auth', async () => {

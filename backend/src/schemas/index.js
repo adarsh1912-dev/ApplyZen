@@ -34,7 +34,10 @@ export const resetPasswordSchema = z.object({
 // ---- Resume content (mirrors the frontend's data model, bounded) ----
 export const TEMPLATE_KEYS = ['classic', 'minimal', 'technical', 'compact', 'engineer', 'terminal', 'opensource', 'staff'];
 
-const bulletSchema = z.string().max(500).default('');
+const BULLET_MAX = 1000;
+const PROJECT_DETAIL_MAX = 2000;
+
+const bulletSchema = z.string().max(BULLET_MAX).default('');
 const experienceSchema = z.object({
   id: z.string().max(60).optional(),
   role: optText(200),
@@ -65,7 +68,7 @@ export const resumeContentSchema = z.object({
   projects: z.array(z.object({
     id: z.string().max(60).optional(),
     name: optText(200),
-    detail: optText(500),
+    detail: optText(PROJECT_DETAIL_MAX),
   })).max(30).default([]),
   certifications: z.array(z.object({
     id: z.string().max(60).optional(),
@@ -181,7 +184,7 @@ export const tailorOutputSchema = z.object({
   summary: z.string().max(2000).default(''),
   experience: z.array(z.object({
     id: z.string().max(60).optional(),
-    bullets: z.array(z.string().max(500)).max(30).default([]),
+    bullets: z.array(z.string().max(BULLET_MAX)).max(30).default([]),
   })).max(50).default([]),
   skills: z.array(z.string().max(80)).max(100).default([]),
   changes: z.array(z.string().max(300)).max(20).default([]),
@@ -211,7 +214,7 @@ export const importOutputSchema = z.object({
     role: optText(200),
     company: optText(200),
     dates: optText(100),
-    bullets: z.array(z.string().max(500)).max(30).default([]),
+    bullets: z.array(z.string().max(BULLET_MAX)).max(30).default([]),
   })).max(50).default([]),
   education: z.array(z.object({
     school: optText(200),
@@ -221,7 +224,7 @@ export const importOutputSchema = z.object({
   skills: z.array(z.string().max(80)).max(100).default([]),
   projects: z.array(z.object({
     name: optText(200),
-    detail: optText(500),
+    detail: optText(PROJECT_DETAIL_MAX),
   })).max(30).default([]),
   certifications: z.array(z.object({
     name: optText(200),

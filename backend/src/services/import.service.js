@@ -40,6 +40,30 @@ async function extractResumeText(filename, buffer) {
   return buffer.toString('utf8');
 }
 
+/** Map provider failures to specific statuses without exposing provider details. */
+function providerFailure(err) {
+  const issues = Array.isArray(err?.issues) ? err.issues : [];
+  const paths = issues
+    .map((issue) => (Array.isArray(issue.path) ? issue.path.join('.') : String(issue.path ?? '')))
+    .filter(Boolean)
+    .join(',');
+  console.error('[import] LLM provider failed:', err?.code ?? err?.name ?? 'unknown', err?.status ?? '', err?.message ?? '', paths);
+
+  if (err?.name === 'AbortError') {
+    return fail(504, 'AI_TIMEOUT', 'The AI provider took too long to read this résumé. Try again in a moment.');
+  }
+  if (err?.code === 'LLM_HTTP' && err.status === 429) {
+    return fail(429, 'AI_RATE_LIMITED', 'The AI provider is rate-limiting imports. Try again in a moment.');
+  }
+  if (issues.some((issue) => issue.code === 'too_big' && issue.path?.[0] === 'projects')) {
+    return fail(422, 'AI_INVALID_OUTPUT', 'A project description in this résumé is too long to import. Shorten it or split the project into two and try again.');
+  }
+  if (['LLM_JSON', 'LLM_SCHEMA', 'LLM_EMPTY'].includes(err?.code)) {
+    return fail(502, 'AI_INVALID_OUTPUT', 'The AI returned an unusable résumé structure. Try importing again.');
+  }
+  return fail(502, 'AI_PROVIDER_FAILED', 'The AI provider could not process this résumé. Try again in a moment.');
+}
+
 /**
  * File -> text -> LLM-structured résumé, stored as a new resume. Requires a
  * configured provider (structuring is inherently model work); the stored
@@ -65,8 +89,7 @@ export async function importResumeFromFile({ userId, filename, dataBase64 }) {
   try {
     out = await importResume(text);
   } catch (err) {
-    console.error('[import] LLM provider failed:', err.message);
-    throw fail(502, 'AI_PROVIDER_FAILED', 'The AI provider could not read this résumé. Try again in a moment.');
+    throw providerFailure(err);
   }
 
   const content = {

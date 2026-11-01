@@ -68,12 +68,49 @@ async function chatJson({ system, user, schema }) {
         ],
       }),
     });
-    if (!res.ok) throw new Error(`provider status ${res.status}`);
-    const body = await res.json();
+    if (!res.ok) {
+      const error = new Error(`provider status ${res.status}`);
+      error.code = 'LLM_HTTP';
+      error.status = res.status;
+      throw error;
+    }
+
+    let body;
+    try {
+      body = await res.json();
+    } catch {
+      const error = new Error('provider returned an invalid response');
+      error.code = 'LLM_JSON';
+      throw error;
+    }
+
     const text = body?.choices?.[0]?.message?.content;
-    if (typeof text !== 'string') throw new Error('empty provider response');
-    const parsed = schema.safeParse(JSON.parse(text));
-    if (!parsed.success) throw new Error('provider output failed validation');
+    if (typeof text !== 'string') {
+      const error = new Error('empty provider response');
+      error.code = 'LLM_EMPTY';
+      throw error;
+    }
+
+    let parsedJson;
+    try {
+      parsedJson = JSON.parse(text);
+    } catch {
+      const error = new Error('provider returned invalid JSON');
+      error.code = 'LLM_JSON';
+      throw error;
+    }
+
+    const parsed = schema.safeParse(parsedJson);
+    if (!parsed.success) {
+      const error = new Error('provider output failed validation');
+      error.code = 'LLM_SCHEMA';
+      error.issues = parsed.error.issues.map((issue) => ({
+        path: issue.path,
+        code: issue.code,
+        message: issue.message,
+      }));
+      throw error;
+    }
     return parsed.data;
   } finally {
     clearTimeout(timer);
